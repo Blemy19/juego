@@ -3,30 +3,30 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Órbita Estelar · Amigos</title>
+<title>Órbita Estelar · Zona de peligro</title>
 <style>
   * { box-sizing: border-box; }
   body {
     margin: 0;
-    padding: 18px;
-    background: #080c1d;
-    color: #edf3ff;
+    padding: 16px;
+    background: #080c1c;
+    color: #eef3ff;
     font-family: system-ui, sans-serif;
   }
-  main { max-width: 960px; margin: auto; }
-  h1 { margin-bottom: 6px; text-align: center; }
-  .intro { text-align: center; color: #afbfdf; }
+  main { max-width: 980px; margin: auto; }
+  h1, .intro { text-align: center; }
+  .intro, .note { color: #b5c5e7; line-height: 1.6; }
   .layout {
     display: grid;
-    grid-template-columns: minmax(0, 480px) minmax(0, 1fr);
+    grid-template-columns: minmax(0, 490px) minmax(0, 1fr);
     gap: 20px;
     align-items: start;
   }
   .panel {
-    background: #131c35;
-    border: 1px solid #33456e;
-    border-radius: 20px;
     padding: 18px;
+    background: #131c35;
+    border: 1px solid #35456f;
+    border-radius: 18px;
     min-width: 0;
   }
   input, button {
@@ -37,28 +37,28 @@
   input {
     width: 100%;
     margin-top: 8px;
-    background: #090f24;
-    border: 1px solid #586f9f;
     color: white;
+    background: #080f24;
+    border: 1px solid #647aa8;
   }
   button {
-    border: 0;
-    background: #ffda78;
-    color: #13203c;
+    border: none;
+    color: #15203a;
+    background: #ffd16c;
     font-weight: bold;
     cursor: pointer;
   }
   button:disabled { opacity: .5; cursor: default; }
   button:focus-visible, input:focus-visible {
-    outline: 3px solid #64e5ff;
+    outline: 3px solid #6de5ff;
     outline-offset: 3px;
   }
-  .secondary { background: #bfd5ff; }
+  .secondary { background: #c7d7ff; }
   .stats, .controls {
     display: flex;
     flex-wrap: wrap;
-    gap: 10px;
     justify-content: space-between;
+    gap: 8px;
     margin: 14px 0;
   }
   .stats { font-weight: bold; }
@@ -66,40 +66,40 @@
     display: block;
     width: 100%;
     height: auto;
-    border: 1px solid #536c9d;
-    border-radius: 15px;
-    background: #0b1430;
+    background: #0b132a;
+    border: 1px solid #536996;
+    border-radius: 14px;
+    touch-action: none;
   }
   .direction {
-    min-width: 58px;
+    min-width: 54px;
     touch-action: none;
     user-select: none;
     -webkit-user-select: none;
   }
-  #effects { min-height: 24px; color: #7fe9ff; }
-  #message { min-height: 48px; }
-  .note, small { color: #b6c5e5; line-height: 1.6; }
+  #effects { min-height: 26px; color: #7be8ff; }
+  #message { min-height: 48px; line-height: 1.5; }
   #message, #rankStatus { overflow-wrap: anywhere; }
   ol { padding-left: 28px; }
-  li { padding: 12px 0; border-bottom: 1px solid #33456e; }
+  li { padding: 12px 0; border-bottom: 1px solid #35456f; }
   li strong { display: block; overflow-wrap: anywhere; }
-  .actions { display: flex; flex-wrap: wrap; gap: 8px; }
+  small { color: #b5c5e7; }
   @media (max-width: 760px) {
-    body { padding: 10px; }
     .layout { grid-template-columns: 1fr; }
+    body { padding: 10px; }
   }
 </style>
 </head>
 <body>
 <main>
   <h1>🌌 Órbita Estelar</h1>
-  <p class="intro">Atrapa estrellas, activa poderes y reta a tus amigos.</p>
+  <p class="intro">Zona de peligro: menos ayuda, más bombas.</p>
 
   <div class="layout">
     <section class="panel" aria-label="Juego">
       <label for="name">Tu apodo</label>
-      <input id="name" maxlength="20" placeholder="Jugador"
-             autocomplete="nickname">
+      <input id="name" maxlength="20"
+             placeholder="Jugador" autocomplete="nickname">
 
       <div class="stats">
         <span>⭐ <span id="score">0</span></span>
@@ -108,369 +108,405 @@
         <span>🔥 <span id="combo">×1</span></span>
       </div>
 
-      <div id="effects">¡Prepara tu nave!</div>
+      <div id="effects">Prepara los reflejos.</div>
 
       <canvas id="game" width="420" height="540"
-              aria-label="Atrapa estrellas con la nave y esquiva bombas">
+              aria-label="Atrapa estrellas y esquiva bombas">
         Tu navegador no admite canvas.
       </canvas>
 
       <div class="controls">
-        <button id="left" class="direction"
-                aria-label="Mover a la izquierda">◀</button>
+        <button id="left" class="direction" aria-label="Izquierda">◀</button>
         <button id="start">Jugar</button>
         <button id="pause" class="secondary" disabled>Pausa</button>
-        <button id="right" class="direction"
-                aria-label="Mover a la derecha">▶</button>
+        <button id="dash" class="secondary" disabled
+                aria-label="Impulso lateral">⚡</button>
+        <button id="right" class="direction" aria-label="Derecha">▶</button>
       </div>
 
       <p id="message" role="status" aria-live="polite">
         Escribe tu apodo y pulsa Jugar.
       </p>
 
-      <details class="note">
-        <summary>Controles y poderes</summary>
-        <p>
-          Muévete con las flechas, A y D o los botones táctiles.
-          Pulsa P para pausar.
-        </p>
-        <p>
-          ⭐ Las estrellas dan puntos. Si se escapan, solo se rompe
-          la racha: no pierdes vidas.<br>
-          🔥 Cada cinco estrellas seguidas mejora el multiplicador,
-          hasta alcanzar ×4.<br>
-          💣 Las bombas quitan una vida.<br>
-          ❤️ Los corazones recuperan vidas, hasta cinco.<br>
-          🛡️ El escudo bloquea una bomba.<br>
-          🧲 El imán atrae estrellas durante ocho segundos.<br>
-          ❄️ La congelación ralentiza la caída durante seis segundos.<br>
-          🌠 Periódicamente llega una lluvia especial: no aparecen
-          bombas nuevas, aunque las anteriores siguen cayendo.
-        </p>
-      </details>
+      <div class="note">
+        <strong>Controles:</strong> flechas o A/D para moverte,
+        Espacio para impulso y P para pausar.
+        En móvil, usa los botones o arrastra la nave.<br><br>
+        ⭐ Atrapa estrellas para sumar puntos y aumentar la racha.<br>
+        💣 Las bombas quitan vida. No aparecen corazones.<br>
+        🛡️ El escudo absorbe un golpe y no se acumula.<br>
+        🧲 El imán atrae estrellas cercanas.<br>
+        ❄️ La congelación ralentiza la caída.<br>
+        🚨 Las columnas rojas anuncian un bombardeo.<br><br>
+        Escapar de una estrella no quita vidas.
+        El impulso no da inmunidad: úsalo para apartarte.
+      </div>
     </section>
 
     <aside class="panel">
       <h2>🏆 Ranking compartido</h2>
-      <p class="note">Las diez mejores partidas de todos los jugadores.</p>
       <ol id="ranking"></ol>
-      <p id="rankStatus" role="status">Conectando…</p>
-
-      <div class="actions">
-        <button id="refresh" class="secondary">Actualizar</button>
-        <button id="share" class="secondary">Compartir enlace</button>
-      </div>
-
+      <p id="rankStatus" role="status">Cargando ranking…</p>
+      <button id="refresh" class="secondary">Actualizar ranking</button>
       <p class="note">
-        El ranking se actualiza automáticamente mientras esta página
-        está abierta. Los resultados se envían al terminar cada partida.
-      </p>
-      <p class="note">
-        Usa un apodo: el ranking es público. No hay cuentas ni
-        verificación de identidad.
+        Las marcas anteriores se conservan, aunque se hayan conseguido
+        con una dificultad distinta. Los apodos y puntos son públicos.
+        Este ranking es informal y no dispone de validación antitrampas.
       </p>
     </aside>
   </div>
 </main>
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
 "use strict";
-
-const $ = id => document.getElementById(id);
-const canvas = $("game");
-const ctx = canvas.getContext("2d");
-const W = canvas.width;
-const H = canvas.height;
 
 const SUPABASE_URL = "https://pmptaaofnyqchnynngaq.supabase.co";
 const SUPABASE_KEY = "sb_publishable_El-USjAgVQgpwS4xuS1gdg_Tl_JfLdY";
 
-let db = null;
-try {
-  if (window.supabase) {
-    db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
-      auth: {
-        persistSession: false,
-        autoRefreshToken: false,
-        detectSessionInUrl: false
-      }
-    });
-  }
-} catch (error) {
-  console.error("No se pudo iniciar Supabase:", error);
+const $ = id => document.getElementById(id);
+const canvas = $("game");
+const ctx = canvas.getContext("2d");
+const W = canvas.width, H = canvas.height;
+const random = (a, b) => a + Math.random() * (b - a);
+const clamp = (x, a, b) => Math.max(a, Math.min(b, x));
+
+let active = false, paused = false, saving = false;
+let score = 0, lives = 3, level = 1, streak = 0;
+let elapsed = 0, spawnClock = 0, nextRaid = 13;
+let magnet = 0, freeze = 0, shield = false;
+let objects = [], particles = [], warnings = [];
+let player, playerName = "Jugador", lastFrame = 0;
+let leftHeld = false, rightHeld = false, dragging = false;
+
+function resetPlayer() {
+  player = {
+    x: W / 2, y: H - 42, radius: 17,
+    direction: 1, invincible: 0,
+    dashTime: 0, dashCooldown: 0
+  };
 }
+resetPlayer();
 
 try {
-  $("name").value = localStorage.getItem("orbita-apodo") || "";
+  $("name").value = localStorage.getItem("orbita_apodo") || "";
 } catch {}
 
-$("name").addEventListener("input", () => {
-  try {
-    localStorage.setItem("orbita-apodo", $("name").value);
-  } catch {}
-});
+async function database(path, options = {}) {
+  const response = await fetch(
+    SUPABASE_URL + "/rest/v1/" + path,
+    {
+      ...options,
+      headers: {
+        apikey: SUPABASE_KEY,
+        "Content-Type": "application/json",
+        ...options.headers
+      },
+      signal: AbortSignal.timeout(12000)
+    }
+  );
 
-let running = false;
-let paused = false;
-let saving = false;
+  if (!response.ok) {
+    throw new Error("Error del ranking: HTTP " + response.status);
+  }
+  return response;
+}
+
 let loadingRank = false;
-let score = 0;
-let lives = 3;
-let streak = 0;
-let shield = false;
-let elapsed = 0;
-let magnetUntil = 0;
-let freezeUntil = 0;
-let spawnClock = 0;
-let previousTime = 0;
-let playerName = "Jugador";
-let objects = [];
-let particles = [];
 
-const ship = { x: W / 2 - 32, y: H - 52, w: 64, h: 23 };
-const keys = { left: false, right: false };
-const touch = { left: false, right: false };
+async function loadRanking() {
+  if (loadingRank) return;
+  loadingRank = true;
+  $("refresh").disabled = true;
+  $("rankStatus").textContent = "Actualizando…";
 
-const icons = {
-  star: "⭐", bomb: "💣", heart: "❤️",
-  shield: "🛡️", magnet: "🧲", freeze: "❄️"
-};
+  try {
+    const response = await database(
+      "puntuaciones?select=nombre,puntos,creado_en" +
+      "&order=puntos.desc,creado_en.asc&limit=10"
+    );
+    const rows = await response.json();
+    $("ranking").replaceChildren();
 
-const backgroundStars = Array.from({ length: 55 }, () => ({
-  x: Math.random() * W,
-  y: Math.random() * H,
-  r: Math.random() * 1.5 + .4
-}));
+    for (const row of rows) {
+      const li = document.createElement("li");
+      const name = document.createElement("strong");
+      const detail = document.createElement("small");
 
-function level() {
-  return 1 + Math.floor(score / 150);
+      name.textContent = row.nombre;
+      detail.textContent =
+        Number(row.puntos).toLocaleString("es-ES") + " puntos · " +
+        new Date(row.creado_en).toLocaleDateString("es-ES");
+
+      li.append(name, detail);
+      $("ranking").append(li);
+    }
+
+    $("rankStatus").textContent = rows.length
+      ? "Ranking actualizado."
+      : "Todavía no hay puntuaciones.";
+  } catch {
+    $("rankStatus").textContent =
+      "No se pudo consultar el ranking. Revisa la conexión y los permisos de Supabase.";
+  } finally {
+    loadingRank = false;
+    $("refresh").disabled = false;
+  }
 }
 
 function multiplier() {
-  return Math.min(4, 1 + Math.floor(streak / 5));
-}
-
-function shower() {
-  return running && elapsed % 30 >= 23;
-}
-
-function clearControls() {
-  keys.left = keys.right = false;
-  touch.left = touch.right = false;
+  return Math.min(5, 1 + Math.floor(streak / 6));
 }
 
 function updateHUD() {
   $("score").textContent = score;
   $("lives").textContent = lives;
-  $("level").textContent = level();
+  $("level").textContent = level;
   $("combo").textContent = "×" + multiplier();
 
   const effects = [];
   if (shield) effects.push("🛡️ Escudo");
-  if (elapsed < magnetUntil)
-    effects.push("🧲 " + Math.ceil(magnetUntil - elapsed) + " s");
-  if (elapsed < freezeUntil)
-    effects.push("❄️ " + Math.ceil(freezeUntil - elapsed) + " s");
-  if (shower()) effects.push("🌠 ¡Lluvia de estrellas!");
-  $("effects").textContent = effects.join(" · ") || "¡A por las estrellas!";
+  if (magnet > 0) effects.push("🧲 " + Math.ceil(magnet) + " s");
+  if (freeze > 0) effects.push("❄️ " + Math.ceil(freeze) + " s");
+  effects.push(player.dashCooldown > 0
+    ? "⚡ Recarga: " + Math.ceil(player.dashCooldown) + " s"
+    : "⚡ Impulso listo");
+
+  $("effects").textContent = effects.join(" · ");
+  $("dash").disabled =
+    !active || paused || player.dashCooldown > 0;
 }
 
 function startGame() {
   if (saving) return;
-  if (running && !confirm("¿Abandonar la partida actual sin guardarla?")) return;
 
   playerName = $("name").value.trim().slice(0, 20) || "Jugador";
-  $("name").value = playerName;
-  try {
-    localStorage.setItem("orbita-apodo", playerName);
-  } catch {}
+  try { localStorage.setItem("orbita_apodo", playerName); } catch {}
 
-  score = 0;
-  lives = 3;
-  streak = 0;
-  shield = false;
-  elapsed = 0;
-  magnetUntil = freezeUntil = spawnClock = 0;
-  objects = [];
-  particles = [];
-  ship.x = W / 2 - ship.w / 2;
-  running = true;
-  paused = false;
-  clearControls();
+  resetPlayer();
+  score = 0; lives = 3; level = 1; streak = 0;
+  elapsed = 0; spawnClock = 0; nextRaid = 13;
+  magnet = 0; freeze = 0; shield = false;
+  objects = []; particles = []; warnings = [];
+  leftHeld = false; rightHeld = false; dragging = false;
+  active = true; paused = false;
 
   $("name").disabled = true;
+  $("start").disabled = true;
   $("pause").disabled = false;
   $("pause").textContent = "Pausa";
-  $("start").textContent = "Reiniciar";
-  $("message").textContent = "¡Las estrellas que se escapan no te hacen daño!";
+  $("message").textContent =
+    "¡A sobrevivir! Las columnas rojas avisan del bombardeo.";
   updateHUD();
 }
 
-function setPaused(value) {
-  if (!running) return;
-  paused = value;
-  clearControls();
-  $("pause").textContent = paused ? "Continuar" : "Pausa";
-  $("message").textContent = paused
-    ? "Partida pausada."
-    : "¡Atrapa estrellas y esquiva bombas!";
+async function endGame() {
+  active = false;
+  saving = true;
+  leftHeld = rightHeld = dragging = false;
+  $("pause").disabled = true;
+  updateHUD();
+
+  const finalScore = score;
+  $("message").textContent =
+    "Fin de partida: " + finalScore + " puntos. Guardando…";
+
+  try {
+    await database("puntuaciones", {
+      method: "POST",
+      headers: { Prefer: "return=minimal" },
+      body: JSON.stringify({ nombre: playerName, puntos: finalScore })
+    });
+    $("message").textContent =
+      "¡Marca guardada! " + finalScore + " puntos. ¿Otra partida?";
+    await loadRanking();
+  } catch {
+    $("message").textContent =
+      "Conseguiste " + finalScore +
+      " puntos, pero no se confirmó el guardado. Revisa tu conexión.";
+  } finally {
+    saving = false;
+    $("start").disabled = false;
+    $("start").textContent = "Otra partida";
+    $("name").disabled = false;
+  }
 }
 
-function spawnObject() {
-  const random = Math.random();
-  let type = "star";
+function togglePause() {
+  if (!active) return;
+  paused = !paused;
+  leftHeld = rightHeld = dragging = false;
+  $("pause").textContent = paused ? "Continuar" : "Pausa";
+  $("message").textContent = paused
+    ? "Partida en pausa."
+    : "¡Sigue esquivando!";
+  updateHUD();
+}
 
-  if (shower()) {
-    if (random > .95) type = "magnet";
-  } else if (random < .26) {
-    type = "bomb";
-  } else if (random < .31) {
-    type = "heart";
-  } else if (random < .36) {
-    type = "shield";
-  } else if (random < .41) {
-    type = "magnet";
-  } else if (random < .46) {
-    type = "freeze";
-  }
+function dash() {
+  if (!active || paused || player.dashCooldown > 0) return;
+  player.dashTime = .16;
+  player.dashCooldown = 3;
+}
+
+function spawn(type, x = random(22, W - 22), y = -25) {
+  const bomb = type.startsWith("bomb");
+  const speed = bomb
+    ? random(150, 205) + (level - 1) * 17
+    : random(120, 165) + (level - 1) * 10;
 
   objects.push({
-    x: 20 + Math.random() * (W - 40),
-    y: -25,
-    radius: 15,
-    type,
-    speed: 135 + Math.random() * 65 + Math.min(200, level() * 12)
+    type, x, y, baseX: x,
+    radius: bomb ? 14 : 12,
+    speed: type === "bombFast" ? speed * 1.45 : speed,
+    phase: random(0, Math.PI * 2),
+    age: 0
   });
 }
 
-function burst(x, y, color) {
-  for (let i = 0; i < 12; i++) {
-    const angle = Math.random() * Math.PI * 2;
-    const speed = 35 + Math.random() * 120;
+function spawnRandom() {
+  const bombChance = Math.min(.68, .40 + (level - 1) * .025);
+  const r = Math.random();
+
+  if (r < bombChance) {
+    const variant = Math.random();
+    spawn(level >= 3 && variant < .25 ? "bombFast"
+      : level >= 2 && variant < .60 ? "bombZig"
+      : "bomb");
+  } else if (r < bombChance + .025) {
+    spawn("shield");
+  } else if (r < bombChance + .05) {
+    spawn("magnet");
+  } else if (r < bombChance + .075) {
+    spawn("freeze");
+  } else {
+    spawn("star");
+  }
+}
+
+function beginRaid() {
+  // Tres carriles peligrosos; siempre quedan otros libres.
+  const lanes = [0, 1, 2, 3, 4, 5];
+  for (let i = lanes.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [lanes[i], lanes[j]] = [lanes[j], lanes[i]];
+  }
+
+  for (const lane of lanes.slice(0, 3)) {
+    warnings.push({ x: lane * 70 + 35, remaining: 1.35 });
+  }
+}
+
+function burst(x, y, color, count = 12) {
+  for (let i = 0; i < count; i++) {
     particles.push({
-      x, y,
-      vx: Math.cos(angle) * speed,
-      vy: Math.sin(angle) * speed,
-      life: .6,
-      color
+      x, y, vx: random(-110, 110), vy: random(-130, 70),
+      life: .55, color
     });
   }
 }
 
-function collides(o) {
-  const x = Math.max(ship.x, Math.min(o.x, ship.x + ship.w));
-  const y = Math.max(ship.y, Math.min(o.y, ship.y + ship.h));
-  return (o.x - x) ** 2 + (o.y - y) ** 2 <= o.radius ** 2;
-}
+function collect(object) {
+  if (object.type.startsWith("bomb")) {
+    if (player.invincible > 0) return;
 
-function collect(o) {
-  burst(o.x, o.y, o.type === "bomb" ? "#ff647c" : "#ffe58a");
+    streak = 0;
+    burst(object.x, object.y, "#ff6c80", 20);
 
-  switch (o.type) {
-    case "star":
-      streak++;
-      score = Math.min(1000000, score + 10 * multiplier());
-      break;
-    case "bomb":
-      streak = 0;
-      if (shield) shield = false;
-      else lives--;
-      break;
-    case "heart":
-      lives = Math.min(5, lives + 1);
-      break;
-    case "shield":
-      shield = true;
-      break;
-    case "magnet":
-      magnetUntil = elapsed + 8;
-      break;
-    case "freeze":
-      freezeUntil = elapsed + 6;
-      break;
-  }
-}
+    if (shield) {
+      shield = false;
+    } else {
+      lives--;
+    }
 
-async function finishGame() {
-  running = false;
-  paused = false;
-  clearControls();
-  $("pause").disabled = true;
-  $("start").textContent = "Otra partida";
-
-  const result = { nombre: playerName, puntos: score };
-  const summary = `¡Fin de la partida! ${result.puntos} puntos.`;
-
-  if (!db) {
-    $("name").disabled = false;
-    $("message").textContent =
-      summary + " Sin conexión al ranking: este resultado no se ha guardado.";
+    player.invincible = 1.2;
+    if (lives <= 0) endGame();
     return;
   }
 
-  saving = true;
-  $("start").disabled = true;
-  $("message").textContent = summary + " Guardando en el ranking…";
+  burst(object.x, object.y, "#ffe085");
 
-  try {
-    const { error } = await db.from("puntuaciones").insert(result);
-    if (error) throw error;
-    $("message").textContent = summary + " ✅ Resultado guardado.";
-    await loadRanking();
-  } catch (error) {
-    console.error("Error al guardar:", error);
-    $("message").textContent =
-      summary +
-      " No se pudo confirmar el guardado. Revisa la conexión y las políticas de Supabase.";
-  } finally {
-    saving = false;
-    $("start").disabled = false;
-    $("name").disabled = false;
+  if (object.type === "star") {
+    streak++;
+    score = Math.min(1000000, score + 10 * multiplier());
+  } else if (object.type === "shield") {
+    shield = true;
+  } else if (object.type === "magnet") {
+    magnet = 7;
+  } else if (object.type === "freeze") {
+    freeze = 5;
   }
 }
 
 function update(dt) {
   elapsed += dt;
+  level = Math.min(16, 1 + Math.floor(elapsed / 12));
 
-  const direction =
-    Number(keys.right || touch.right) - Number(keys.left || touch.left);
-  ship.x = Math.max(0, Math.min(W - ship.w, ship.x + direction * 350 * dt));
+  magnet = Math.max(0, magnet - dt);
+  freeze = Math.max(0, freeze - dt);
+  player.invincible = Math.max(0, player.invincible - dt);
+  player.dashCooldown = Math.max(0, player.dashCooldown - dt);
 
-  spawnClock += dt;
-  const interval = shower() ? .17 : Math.max(.3, .8 - level() * .035);
+  const direction = Number(rightHeld) - Number(leftHeld);
+  if (direction) player.direction = direction;
 
-  if (spawnClock >= interval) {
-    spawnClock = 0;
-    spawnObject();
+  if (player.dashTime > 0) {
+    player.x += player.direction * 950 * dt;
+    player.dashTime = Math.max(0, player.dashTime - dt);
+  } else {
+    player.x += direction * 320 * dt;
+  }
+  player.x = clamp(player.x, 20, W - 20);
+
+  spawnClock -= dt;
+  if (spawnClock <= 0) {
+    spawnRandom();
+    spawnClock = Math.max(.19, .64 - (level - 1) * .032);
   }
 
-  const slow = elapsed < freezeUntil ? .45 : 1;
+  if (elapsed >= nextRaid) {
+    beginRaid();
+    nextRaid = elapsed + Math.max(7, 15 - level * .5);
+  }
+
+  for (let i = warnings.length - 1; i >= 0; i--) {
+    const warning = warnings[i];
+    warning.remaining -= dt;
+    if (warning.remaining <= 0) {
+      spawn("bombFast", warning.x);
+      spawn("bomb", warning.x, -105);
+      warnings.splice(i, 1);
+    }
+  }
 
   for (let i = objects.length - 1; i >= 0; i--) {
-    const o = objects[i];
-    o.y += o.speed * slow * dt;
+    const object = objects[i];
+    object.age += dt;
+    object.y += object.speed * dt * (freeze > 0 ? .48 : 1);
 
-    if (o.type === "star" && elapsed < magnetUntil) {
-      const dx = ship.x + ship.w / 2 - o.x;
-      const dy = ship.y + ship.h / 2 - o.y;
+    if (object.type === "bombZig") {
+      object.x = clamp(
+        object.baseX + Math.sin(object.age * 4 + object.phase) * 35,
+        16, W - 16
+      );
+    }
+
+    if (object.type === "star" && magnet > 0) {
+      const dx = player.x - object.x;
+      const dy = player.y - object.y;
       const distance = Math.hypot(dx, dy);
-      if (distance > 0 && distance < 180) {
-        o.x += dx / distance * 250 * dt;
-        o.y += dy / distance * 190 * dt;
+      if (distance > 1 && distance < 150) {
+        object.x += dx / distance * 290 * dt;
+        object.y += dy / distance * 290 * dt;
       }
     }
 
-    if (collides(o)) {
-      collect(o);
+    if (Math.hypot(object.x - player.x, object.y - player.y)
+        < object.radius + player.radius) {
       objects.splice(i, 1);
-      if (lives <= 0) {
-        updateHUD();
-        finishGame();
-        return;
-      }
-    } else if (o.y > H + 25) {
-      if (o.type === "star") streak = 0;
+      collect(object);
+      if (!active) break;
+    } else if (object.y > H + 30) {
+      if (object.type === "star") streak = 0;
       objects.splice(i, 1);
     }
   }
@@ -486,152 +522,120 @@ function update(dt) {
   updateHUD();
 }
 
+const icons = {
+  star: "⭐", bomb: "💣", bombFast: "💣",
+  bombZig: "💣", shield: "🛡️", magnet: "🧲", freeze: "❄️"
+};
+
 function draw() {
-  const gradient = ctx.createLinearGradient(0, 0, 0, H);
-  gradient.addColorStop(0, shower() ? "#341654" : "#091329");
-  gradient.addColorStop(1, shower() ? "#123d62" : "#192d51");
-  ctx.fillStyle = gradient;
+  ctx.clearRect(0, 0, W, H);
+  ctx.fillStyle = freeze > 0 ? "#10283f" : "#0b132a";
   ctx.fillRect(0, 0, W, H);
 
-  ctx.fillStyle = "#d4e5ff";
-  for (const star of backgroundStars) {
-    ctx.globalAlpha = .35 + star.r / 3;
-    ctx.beginPath();
-    ctx.arc(star.x, (star.y + elapsed * 12) % H, star.r, 0, Math.PI * 2);
-    ctx.fill();
-  }
-  ctx.globalAlpha = 1;
-
-  if (running && elapsed < magnetUntil) {
-    ctx.strokeStyle = "#58e5ff66";
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.arc(ship.x + ship.w / 2, ship.y + ship.h / 2,
-            95 + Math.sin(elapsed * 6) * 8, 0, Math.PI * 2);
-    ctx.stroke();
+  ctx.fillStyle = "#6f8ab6";
+  for (let i = 0; i < 45; i++) {
+    const x = (i * 83 + 17) % W;
+    const y = (i * 97 + elapsed * (8 + i % 5)) % H;
+    ctx.fillRect(x, y, 2, 2);
   }
 
-  ctx.font = "28px system-ui";
+  for (const warning of warnings) {
+    ctx.fillStyle = "rgba(255,65,90,.17)";
+    ctx.fillRect(warning.x - 27, 0, 54, H);
+    ctx.fillStyle = "#ff647e";
+    ctx.font = "bold 25px system-ui";
+    ctx.textAlign = "center";
+    ctx.fillText("!", warning.x, 32);
+  }
+
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
-  for (const o of objects) ctx.fillText(icons[o.type], o.x, o.y);
+
+  for (const object of objects) {
+    if (object.type === "bombFast") {
+      ctx.strokeStyle = "#ff8b57";
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.moveTo(object.x, object.y - 30);
+      ctx.lineTo(object.x, object.y - 15);
+      ctx.stroke();
+    }
+    if (object.type === "bombZig") {
+      ctx.fillStyle = "#c58aff";
+      ctx.fillRect(object.x - 12, object.y + 17, 24, 3);
+    }
+    ctx.font = "26px system-ui";
+    ctx.fillText(icons[object.type], object.x, object.y);
+  }
 
   for (const p of particles) {
-    ctx.globalAlpha = Math.max(0, p.life / .6);
+    ctx.globalAlpha = Math.max(0, p.life / .55);
     ctx.fillStyle = p.color;
     ctx.fillRect(p.x, p.y, 4, 4);
   }
   ctx.globalAlpha = 1;
 
-  const center = ship.x + ship.w / 2;
-  ctx.fillStyle = "#69dcff";
-  ctx.beginPath();
-  ctx.moveTo(center, ship.y - 9);
-  ctx.lineTo(ship.x + ship.w, ship.y + ship.h);
-  ctx.lineTo(ship.x, ship.y + ship.h);
-  ctx.closePath();
-  ctx.fill();
-
-  ctx.fillStyle = "#f4fcff";
-  ctx.fillRect(center - 8, ship.y + 3, 16, 10);
-
-  if (shield) {
-    ctx.strokeStyle = "#bda7ff";
-    ctx.lineWidth = 3;
+  if (shield || magnet > 0) {
+    ctx.strokeStyle = shield ? "#78e5ff" : "#bd94ff";
+    ctx.lineWidth = 2;
     ctx.beginPath();
-    ctx.ellipse(center, ship.y + 9, 43, 30, 0, 0, Math.PI * 2);
+    ctx.arc(player.x, player.y, shield ? 27 : 34, 0, Math.PI * 2);
     ctx.stroke();
   }
 
-  if (!running || paused) {
-    ctx.fillStyle = "#05091bb8";
+  if (player.invincible <= 0 ||
+      Math.floor(player.invincible * 12) % 2 === 0) {
+    ctx.fillStyle = player.dashTime > 0 ? "#ffffff" : "#77dcff";
+    ctx.beginPath();
+    ctx.moveTo(player.x, player.y - 20);
+    ctx.lineTo(player.x - 18, player.y + 15);
+    ctx.lineTo(player.x, player.y + 8);
+    ctx.lineTo(player.x + 18, player.y + 15);
+    ctx.closePath();
+    ctx.fill();
+
+    ctx.fillStyle = "#ffbd60";
+    ctx.fillRect(player.x - 5, player.y + 14, 10, 10);
+  }
+
+  if (!active || paused) {
+    ctx.fillStyle = "rgba(3,8,22,.65)";
     ctx.fillRect(0, 0, W, H);
-    ctx.fillStyle = "#fff";
+    ctx.fillStyle = "#eef3ff";
     ctx.font = "bold 28px system-ui";
-    ctx.fillText(paused ? "⏸ Pausa" : "🌌 Órbita Estelar", W / 2, H / 2 - 18);
+    ctx.fillText(paused ? "PAUSA" : "ZONA DE PELIGRO", W / 2, H / 2);
     ctx.font = "16px system-ui";
     ctx.fillText(
-      paused ? "Pulsa Continuar o P" : "Pulsa el botón para jugar",
-      W / 2, H / 2 + 20
+      paused ? "Respira… y continúa." : "Estrellas sí. Bombas no.",
+      W / 2, H / 2 + 36
     );
   }
+
+  ctx.textBaseline = "alphabetic";
 }
 
-function frame(time) {
-  const dt = Math.min(.04, (time - previousTime) / 1000 || 0);
-  previousTime = time;
-  if (running && !paused) update(dt);
+function frame(now) {
+  const dt = Math.min(.033, (now - lastFrame) / 1000 || 0);
+  lastFrame = now;
+  if (active && !paused) update(dt);
   draw();
   requestAnimationFrame(frame);
 }
 
-async function loadRanking() {
-  if (loadingRank) return;
-  if (!db) {
-    $("rankStatus").textContent =
-      "No se ha cargado la conexión. Comprueba internet y recarga la página.";
-    return;
-  }
-
-  loadingRank = true;
-  $("refresh").disabled = true;
-  $("rankStatus").textContent = "Actualizando…";
-
-  try {
-    const { data, error } = await db
-      .from("puntuaciones")
-      .select("nombre,puntos,creado_en")
-      .order("puntos", { ascending: false })
-      .order("creado_en", { ascending: true })
-      .limit(10);
-
-    if (error) throw error;
-
-    $("ranking").replaceChildren();
-
-    for (const row of data) {
-      const li = document.createElement("li");
-      const name = document.createElement("strong");
-      const info = document.createElement("small");
-
-      // textContent evita interpretar los apodos como código HTML.
-      name.textContent = row.nombre;
-      info.textContent =
-        `${row.puntos.toLocaleString("es-ES")} puntos · ` +
-        new Date(row.creado_en).toLocaleDateString("es-ES");
-
-      li.append(name, info);
-      $("ranking").append(li);
-    }
-
-    $("rankStatus").textContent = data.length
-      ? "Actualizado a las " + new Date().toLocaleTimeString("es-ES")
-      : "Todavía no hay resultados. ¡Consigue el primero!";
-  } catch (error) {
-    console.error("Error al consultar ranking:", error);
-    $("rankStatus").textContent =
-      "No se pudo cargar el ranking. Comprueba internet, la tabla y sus permisos.";
-  } finally {
-    loadingRank = false;
-    $("refresh").disabled = false;
-  }
-}
-
 function bindDirection(id, side) {
   const button = $(id);
-  const pointers = new Set();
-
   button.addEventListener("pointerdown", event => {
     event.preventDefault();
+    if (!active || paused) return;
     button.setPointerCapture(event.pointerId);
-    pointers.add(event.pointerId);
-    touch[side] = true;
+    if (side === "left") leftHeld = true;
+    else rightHeld = true;
   });
 
-  function release(event) {
-    pointers.delete(event.pointerId);
-    touch[side] = pointers.size > 0;
-  }
+  const release = () => {
+    if (side === "left") leftHeld = false;
+    else rightHeld = false;
+  };
 
   button.addEventListener("pointerup", release);
   button.addEventListener("pointercancel", release);
@@ -641,67 +645,68 @@ function bindDirection(id, side) {
 bindDirection("left", "left");
 bindDirection("right", "right");
 
-window.addEventListener("keydown", event => {
-  if (event.target instanceof HTMLInputElement ||
-      event.target instanceof HTMLTextAreaElement ||
-      event.target.isContentEditable) return;
+function movePointer(event) {
+  if (!active || paused || !dragging) return;
+  const rect = canvas.getBoundingClientRect();
+  const x = clamp((event.clientX - rect.left) * W / rect.width, 20, W - 20);
+  if (Math.abs(x - player.x) > 1) {
+    player.direction = Math.sign(x - player.x);
+  }
+  if (player.dashTime <= 0) player.x = x;
+}
 
+canvas.addEventListener("pointerdown", event => {
+  if (!active || paused) return;
+  dragging = true;
+  canvas.setPointerCapture(event.pointerId);
+  movePointer(event);
+});
+canvas.addEventListener("pointermove", movePointer);
+for (const type of ["pointerup", "pointercancel", "lostpointercapture"]) {
+  canvas.addEventListener(type, () => { dragging = false; });
+}
+
+document.addEventListener("keydown", event => {
+  if (event.target instanceof HTMLInputElement) return;
   const key = event.key.toLowerCase();
-  if (["arrowleft", "arrowright", "a", "d", "p"].includes(key))
+
+  if (["arrowleft", "arrowright", "a", "d", "p", " "].includes(key)) {
     event.preventDefault();
-
-  if (key === "arrowleft" || key === "a") keys.left = true;
-  if (key === "arrowright" || key === "d") keys.right = true;
-  if (key === "p" && !event.repeat) setPaused(!paused);
+  }
+  if (!active) return;
+  if (key === "p" && !event.repeat) togglePause();
+  if (paused) return;
+  if (key === "arrowleft" || key === "a") leftHeld = true;
+  if (key === "arrowright" || key === "d") rightHeld = true;
+  if (key === " " && !event.repeat) dash();
 });
 
-window.addEventListener("keyup", event => {
+document.addEventListener("keyup", event => {
   const key = event.key.toLowerCase();
-  if (key === "arrowleft" || key === "a") keys.left = false;
-  if (key === "arrowright" || key === "d") keys.right = false;
+  if (key === "arrowleft" || key === "a") leftHeld = false;
+  if (key === "arrowright" || key === "d") rightHeld = false;
 });
 
-window.addEventListener("blur", () => {
-  clearControls();
-  if (running && !paused) setPaused(true);
-});
+function autoPause() {
+  leftHeld = rightHeld = dragging = false;
+  if (active && !paused) togglePause();
+}
 
+window.addEventListener("blur", autoPause);
 document.addEventListener("visibilitychange", () => {
-  if (document.hidden && running && !paused) setPaused(true);
+  if (document.hidden) autoPause();
 });
 
 $("start").addEventListener("click", startGame);
-$("pause").addEventListener("click", () => setPaused(!paused));
+$("pause").addEventListener("click", togglePause);
+$("dash").addEventListener("click", dash);
 $("refresh").addEventListener("click", loadRanking);
 
-$("share").addEventListener("click", async () => {
-  if (!["https:", "http:"].includes(location.protocol)) {
-    $("rankStatus").textContent =
-      "Primero publica el juego. Un archivo de tu dispositivo no es un enlace público.";
-    return;
-  }
-
-  const url = location.href.split("#")[0];
-  try {
-    if (navigator.share) {
-      await navigator.share({ title: "Órbita Estelar", url });
-    } else if (navigator.clipboard && window.isSecureContext) {
-      await navigator.clipboard.writeText(url);
-      $("rankStatus").textContent = "¡Enlace copiado!";
-    } else {
-      prompt("Copia este enlace:", url);
-    }
-  } catch (error) {
-    if (error.name !== "AbortError")
-      $("rankStatus").textContent = "Puedes copiar el enlace desde la barra del navegador.";
-  }
-});
-
-loadRanking();
 setInterval(() => {
   if (!document.hidden) loadRanking();
 }, 30000);
 
+loadRanking();
 requestAnimationFrame(frame);
 </script>
 </body>
