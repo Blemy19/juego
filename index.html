@@ -3,97 +3,73 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Órbita Estelar · Zona de peligro</title>
+<title>Órbita Estelar · Dificultad progresiva</title>
 <style>
-  * { box-sizing: border-box; }
-  body {
-    margin: 0;
-    padding: 16px;
-    background: #080c1c;
-    color: #eef3ff;
-    font-family: system-ui, sans-serif;
-  }
-  main { max-width: 980px; margin: auto; }
-  h1, .intro { text-align: center; }
-  .intro, .note { color: #b5c5e7; line-height: 1.6; }
-  .layout {
-    display: grid;
-    grid-template-columns: minmax(0, 490px) minmax(0, 1fr);
-    gap: 20px;
-    align-items: start;
-  }
-  .panel {
-    padding: 18px;
-    background: #131c35;
-    border: 1px solid #35456f;
-    border-radius: 18px;
-    min-width: 0;
-  }
-  input, button {
-    font: inherit;
-    padding: 12px;
-    border-radius: 10px;
-  }
-  input {
-    width: 100%;
-    margin-top: 8px;
-    color: white;
-    background: #080f24;
-    border: 1px solid #647aa8;
-  }
-  button {
-    border: none;
-    color: #15203a;
-    background: #ffd16c;
-    font-weight: bold;
-    cursor: pointer;
-  }
-  button:disabled { opacity: .5; cursor: default; }
-  button:focus-visible, input:focus-visible {
-    outline: 3px solid #6de5ff;
-    outline-offset: 3px;
-  }
-  .secondary { background: #c7d7ff; }
-  .stats, .controls {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: space-between;
-    gap: 8px;
-    margin: 14px 0;
-  }
-  .stats { font-weight: bold; }
-  canvas {
-    display: block;
-    width: 100%;
-    height: auto;
-    background: #0b132a;
-    border: 1px solid #536996;
-    border-radius: 14px;
-    touch-action: none;
-  }
-  .direction {
-    min-width: 54px;
-    touch-action: none;
-    user-select: none;
-    -webkit-user-select: none;
-  }
-  #effects { min-height: 26px; color: #7be8ff; }
-  #message { min-height: 48px; line-height: 1.5; }
-  #message, #rankStatus { overflow-wrap: anywhere; }
-  ol { padding-left: 28px; }
-  li { padding: 12px 0; border-bottom: 1px solid #35456f; }
-  li strong { display: block; overflow-wrap: anywhere; }
-  small { color: #b5c5e7; }
-  @media (max-width: 760px) {
-    .layout { grid-template-columns: 1fr; }
-    body { padding: 10px; }
-  }
+* { box-sizing: border-box; }
+body {
+  margin: 0; padding: 16px; background: #080d20;
+  color: #edf3ff; font-family: system-ui, sans-serif;
+}
+main { max-width: 980px; margin: auto; }
+h1, .intro { text-align: center; }
+.intro, .note { color: #b8c8e8; line-height: 1.6; }
+.layout {
+  display: grid; grid-template-columns: minmax(0, 490px) 1fr;
+  gap: 20px; align-items: start;
+}
+.panel {
+  min-width: 0; padding: 18px; border-radius: 18px;
+  border: 1px solid #35466d; background: #131d36;
+}
+input, button { padding: 12px; border-radius: 10px; font: inherit; }
+input {
+  width: 100%; margin-top: 8px; background: #080f24;
+  color: white; border: 1px solid #657aa3;
+}
+button {
+  border: 0; background: #ffd478; color: #14203b;
+  font-weight: bold; cursor: pointer;
+}
+button:disabled { opacity: .5; cursor: default; }
+button:focus-visible, input:focus-visible {
+  outline: 3px solid #78e8ff; outline-offset: 3px;
+}
+.secondary { background: #c9d8ff; }
+.stats, .controls {
+  display: flex; flex-wrap: wrap; justify-content: space-between;
+  gap: 8px; margin: 14px 0;
+}
+canvas {
+  display: block; width: 100%; height: auto;
+  background: #09132c; border: 1px solid #536996;
+  border-radius: 14px; touch-action: none;
+}
+.direction { touch-action: none; user-select: none; min-width: 52px; }
+#effects { color: #88ecff; min-height: 28px; margin-top: 10px; }
+#message { min-height: 48px; line-height: 1.5; }
+#message, #rankStatus { overflow-wrap: anywhere; }
+.bar {
+  height: 7px; background: #283654; border-radius: 8px;
+  overflow: hidden; margin: 8px 0;
+}
+#difficultyBar {
+  height: 100%; width: 0%;
+  background: linear-gradient(90deg, #6be8b1, #ffcd70, #ff6685);
+}
+ol { padding-left: 28px; }
+li { padding: 12px 0; border-bottom: 1px solid #35466d; }
+li strong { display: block; overflow-wrap: anywhere; }
+small { color: #b8c8e8; }
+@media (max-width: 760px) {
+  .layout { grid-template-columns: 1fr; }
+  body { padding: 10px; }
+}
 </style>
 </head>
 <body>
 <main>
   <h1>🌌 Órbita Estelar</h1>
-  <p class="intro">Zona de peligro: menos ayuda, más bombas.</p>
+  <p class="intro">Empieza tranquilo. Sobrevive al caos.</p>
 
   <div class="layout">
     <section class="panel" aria-label="Juego">
@@ -102,18 +78,21 @@
              placeholder="Jugador" autocomplete="nickname">
 
       <div class="stats">
-        <span>⭐ <span id="score">0</span></span>
-        <span>❤️ <span id="lives">3</span></span>
-        <span>Nivel <span id="level">1</span></span>
-        <span>🔥 <span id="combo">×1</span></span>
+        <span>⭐ <b id="score">0</b></span>
+        <span>❤️ <b id="lives">3</b></span>
+        <span>🔥 <b id="combo">×1</b></span>
+        <span>⏱️ <b id="time">0 s</b></span>
       </div>
 
-      <div id="effects">Prepara los reflejos.</div>
+      <div id="stage">🌱 Despegue tranquilo</div>
+      <div class="bar"><div id="difficultyBar"></div></div>
 
       <canvas id="game" width="420" height="540"
               aria-label="Atrapa estrellas y esquiva bombas">
         Tu navegador no admite canvas.
       </canvas>
+
+      <div id="effects">Todo listo para despegar.</div>
 
       <div class="controls">
         <button id="left" class="direction" aria-label="Izquierda">◀</button>
@@ -131,15 +110,14 @@
       <div class="note">
         <strong>Controles:</strong> flechas o A/D para moverte,
         Espacio para impulso y P para pausar.
-        En móvil, usa los botones o arrastra la nave.<br><br>
-        ⭐ Atrapa estrellas para sumar puntos y aumentar la racha.<br>
+        En móvil puedes usar los botones o arrastrar la nave.<br><br>
+        ⭐ Las estrellas suman puntos. Si se escapan, solo rompen la racha.<br>
         💣 Las bombas quitan vida. No aparecen corazones.<br>
-        🛡️ El escudo absorbe un golpe y no se acumula.<br>
+        🛡️ El escudo absorbe un impacto.<br>
         🧲 El imán atrae estrellas cercanas.<br>
         ❄️ La congelación ralentiza la caída.<br>
-        🚨 Las columnas rojas anuncian un bombardeo.<br><br>
-        Escapar de una estrella no quita vidas.
-        El impulso no da inmunidad: úsalo para apartarte.
+        🚨 Durante los bombardeos busca la columna sin aviso rojo.<br><br>
+        El impulso sirve para esquivar, pero no da inmunidad.
       </div>
     </section>
 
@@ -149,9 +127,12 @@
       <p id="rankStatus" role="status">Cargando ranking…</p>
       <button id="refresh" class="secondary">Actualizar ranking</button>
       <p class="note">
-        Las marcas anteriores se conservan, aunque se hayan conseguido
-        con una dificultad distinta. Los apodos y puntos son públicos.
-        Este ranking es informal y no dispone de validación antitrampas.
+        Se conservan las marcas anteriores, aunque se consiguieran
+        con una dificultad diferente.
+      </p>
+      <p class="note">
+        Ranking informal entre amigos: los resultados se calculan
+        en el navegador y no están protegidos contra trampas.
       </p>
     </aside>
   </div>
@@ -167,406 +148,458 @@ const $ = id => document.getElementById(id);
 const canvas = $("game");
 const ctx = canvas.getContext("2d");
 const W = canvas.width, H = canvas.height;
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 const random = (a, b) => a + Math.random() * (b - a);
-const clamp = (x, a, b) => Math.max(a, Math.min(b, x));
 
-let active = false, paused = false, saving = false;
-let score = 0, lives = 3, level = 1, streak = 0;
-let elapsed = 0, spawnClock = 0, nextRaid = 13;
-let magnet = 0, freeze = 0, shield = false;
-let objects = [], particles = [], warnings = [];
-let player, playerName = "Jugador", lastFrame = 0;
-let leftHeld = false, rightHeld = false, dragging = false;
+let state = "ready";
+let elapsed = 0, score = 0, lives = 3, streak = 0;
+let shield = false, magnet = 0, freeze = 0, invulnerable = 0;
+let dashCooldown = 0, dashTime = 0, dashDirection = 1;
+let spawnTimer = 0, nextRaid = 65, warning = null;
+let objects = [], particles = [];
+let player = { x: W / 2, y: H - 43, width: 44, height: 22 };
+let lastDirection = 1, pointerTarget = null, dragging = false;
+let playerName = "Jugador";
+let leftHeld = false, rightHeld = false;
+const keys = new Set();
 
-function resetPlayer() {
-  player = {
-    x: W / 2, y: H - 42, radius: 17,
-    direction: 1, invincible: 0,
-    dashTime: 0, dashCooldown: 0
-  };
-}
-resetPlayer();
+const stars = Array.from({ length: 65 }, () => ({
+  x: random(0, W), y: random(0, H),
+  size: random(.7, 2), speed: random(5, 22)
+}));
 
 try {
   $("name").value = localStorage.getItem("orbita_apodo") || "";
 } catch {}
 
-async function database(path, options = {}) {
-  const response = await fetch(
-    SUPABASE_URL + "/rest/v1/" + path,
-    {
-      ...options,
-      headers: {
-        apikey: SUPABASE_KEY,
-        "Content-Type": "application/json",
-        ...options.headers
-      },
-      signal: AbortSignal.timeout(12000)
-    }
-  );
+// El tiempo activo es la única fuente de dificultad.
+// Pausar no hace avanzar esta curva.
+function difficulty() {
+  const progress = clamp(elapsed / 180, 0, 1);
+  const smooth = progress * progress * (3 - 2 * progress);
 
-  if (!response.ok) {
-    throw new Error("Error del ranking: HTTP " + response.status);
-  }
-  return response;
+  return {
+    progress,
+    // De caída lenta a rápida, sin saltos entre niveles.
+    speed: 88 + 160 * smooth,
+    // De poco más de un objeto por segundo a unos tres.
+    interval: 0.90 - 0.58 * smooth,
+    // Las bombas pasan gradualmente de poco frecuentes a habituales.
+    bombChance: 0.10 + 0.40 * smooth,
+    zigzagChance: elapsed < 35
+      ? 0 : 0.30 * clamp((elapsed - 35) / 85, 0, 1),
+    fastChance: elapsed < 80
+      ? 0 : 0.24 * clamp((elapsed - 80) / 100, 0, 1)
+  };
 }
 
-let loadingRank = false;
-
-async function loadRanking() {
-  if (loadingRank) return;
-  loadingRank = true;
-  $("refresh").disabled = true;
-  $("rankStatus").textContent = "Actualizando…";
-
-  try {
-    const response = await database(
-      "puntuaciones?select=nombre,puntos,creado_en" +
-      "&order=puntos.desc,creado_en.asc&limit=10"
-    );
-    const rows = await response.json();
-    $("ranking").replaceChildren();
-
-    for (const row of rows) {
-      const li = document.createElement("li");
-      const name = document.createElement("strong");
-      const detail = document.createElement("small");
-
-      name.textContent = row.nombre;
-      detail.textContent =
-        Number(row.puntos).toLocaleString("es-ES") + " puntos · " +
-        new Date(row.creado_en).toLocaleDateString("es-ES");
-
-      li.append(name, detail);
-      $("ranking").append(li);
-    }
-
-    $("rankStatus").textContent = rows.length
-      ? "Ranking actualizado."
-      : "Todavía no hay puntuaciones.";
-  } catch {
-    $("rankStatus").textContent =
-      "No se pudo consultar el ranking. Revisa la conexión y los permisos de Supabase.";
-  } finally {
-    loadingRank = false;
-    $("refresh").disabled = false;
-  }
+function stageName() {
+  if (elapsed < 20) return "🌱 Despegue tranquilo";
+  if (elapsed < 45) return "✨ Cogiendo velocidad";
+  if (elapsed < 80) return "💣 Zona de riesgo";
+  if (elapsed < 130) return "🚨 Espacio hostil";
+  if (elapsed < 180) return "🔥 Tormenta orbital";
+  return "🌋 Intensidad máxima";
 }
 
 function multiplier() {
-  return Math.min(5, 1 + Math.floor(streak / 6));
+  return Math.min(5, 1 + Math.floor(streak / 5));
 }
 
 function updateHUD() {
   $("score").textContent = score;
   $("lives").textContent = lives;
-  $("level").textContent = level;
   $("combo").textContent = "×" + multiplier();
+  $("time").textContent = Math.floor(elapsed) + " s";
+  $("stage").textContent = stageName();
+  $("difficultyBar").style.width = difficulty().progress * 100 + "%";
 
   const effects = [];
   if (shield) effects.push("🛡️ Escudo");
   if (magnet > 0) effects.push("🧲 " + Math.ceil(magnet) + " s");
   if (freeze > 0) effects.push("❄️ " + Math.ceil(freeze) + " s");
-  effects.push(player.dashCooldown > 0
-    ? "⚡ Recarga: " + Math.ceil(player.dashCooldown) + " s"
-    : "⚡ Impulso listo");
+  if (state === "playing" || state === "paused") {
+    effects.push(dashCooldown > 0
+      ? "⚡ " + Math.ceil(dashCooldown) + " s"
+      : "⚡ Impulso listo");
+  }
+  $("effects").textContent = effects.join(" · ") || "Todo listo para despegar.";
+  $("dash").disabled = state !== "playing" || dashCooldown > 0;
+}
 
-  $("effects").textContent = effects.join(" · ");
-  $("dash").disabled =
-    !active || paused || player.dashCooldown > 0;
+function burst(x, y, color) {
+  for (let i = 0; i < 12; i++) {
+    particles.push({
+      x, y, vx: random(-100, 100), vy: random(-120, 70),
+      life: .55, color
+    });
+  }
+}
+
+function addObject(type, x, speed, style = "normal") {
+  objects.push({
+    type, x, y: -22, speed, style,
+    age: 0, phase: random(0, Math.PI * 2),
+    radius: type === "bomb" ? 12 : 11
+  });
+}
+
+function spawnObject() {
+  const d = difficulty();
+  let type = "star";
+  const roll = Math.random();
+
+  // Pequeña ventana inicial para familiarizarse con el movimiento.
+  if (elapsed > 5 && roll < d.bombChance) {
+    type = "bomb";
+  } else if (roll > .975) {
+    type = "shield";
+  } else if (roll > .95) {
+    type = "magnet";
+  } else if (roll > .925) {
+    type = "freeze";
+  }
+
+  let style = "normal";
+  let speed = d.speed * random(.85, 1.12);
+
+  if (type === "bomb") {
+    const variation = Math.random();
+    if (variation < d.fastChance) {
+      style = "fast";
+      speed *= 1.35;
+    } else if (variation < d.fastChance + d.zigzagChance) {
+      style = "zigzag";
+    }
+  }
+
+  addObject(type, random(22, W - 22), speed, style);
+}
+
+function beginRaid() {
+  const safeLane = Math.floor(random(0, 5));
+  warning = { remaining: 1.8, safeLane };
+
+  // Impide que otras bombas ya presentes invadan el hueco anunciado.
+  // Durante el aviso tampoco se generan objetos nuevos.
+  objects = objects.filter(o => o.type !== "bomb");
+}
+
+function releaseRaid() {
+  const laneWidth = W / 5;
+  for (let lane = 0; lane < 5; lane++) {
+    if (lane === warning.safeLane) continue;
+    addObject(
+      "bomb", laneWidth * (lane + .5),
+      difficulty().speed * 1.05
+    );
+  }
+  warning = null;
+  spawnTimer = 1.0;
 }
 
 function startGame() {
-  if (saving) return;
+  if (state === "playing" || state === "paused") return;
 
   playerName = $("name").value.trim().slice(0, 20) || "Jugador";
+  $("name").value = playerName;
   try { localStorage.setItem("orbita_apodo", playerName); } catch {}
 
-  resetPlayer();
-  score = 0; lives = 3; level = 1; streak = 0;
-  elapsed = 0; spawnClock = 0; nextRaid = 13;
-  magnet = 0; freeze = 0; shield = false;
-  objects = []; particles = []; warnings = [];
-  leftHeld = false; rightHeld = false; dragging = false;
-  active = true; paused = false;
+  elapsed = 0; score = 0; lives = 3; streak = 0;
+  shield = false; magnet = 0; freeze = 0; invulnerable = 0;
+  dashCooldown = 0; dashTime = 0;
+  spawnTimer = .65; nextRaid = 65; warning = null;
+  objects = []; particles = [];
+  player.x = W / 2;
+  resetControls();
+  state = "playing";
 
   $("name").disabled = true;
   $("start").disabled = true;
   $("pause").disabled = false;
   $("pause").textContent = "Pausa";
   $("message").textContent =
-    "¡A sobrevivir! Las columnas rojas avisan del bombardeo.";
+    "Empieza con calma: la intensidad aumentará poco a poco.";
   updateHUD();
 }
 
-async function endGame() {
-  active = false;
-  saving = true;
-  leftHeld = rightHeld = dragging = false;
-  $("pause").disabled = true;
-  updateHUD();
-
-  const finalScore = score;
-  $("message").textContent =
-    "Fin de partida: " + finalScore + " puntos. Guardando…";
-
-  try {
-    await database("puntuaciones", {
-      method: "POST",
-      headers: { Prefer: "return=minimal" },
-      body: JSON.stringify({ nombre: playerName, puntos: finalScore })
-    });
-    $("message").textContent =
-      "¡Marca guardada! " + finalScore + " puntos. ¿Otra partida?";
-    await loadRanking();
-  } catch {
-    $("message").textContent =
-      "Conseguiste " + finalScore +
-      " puntos, pero no se confirmó el guardado. Revisa tu conexión.";
-  } finally {
-    saving = false;
-    $("start").disabled = false;
-    $("start").textContent = "Otra partida";
-    $("name").disabled = false;
-  }
+function resetControls() {
+  keys.clear();
+  leftHeld = false; rightHeld = false;
+  dragging = false; pointerTarget = null;
 }
 
 function togglePause() {
-  if (!active) return;
-  paused = !paused;
-  leftHeld = rightHeld = dragging = false;
-  $("pause").textContent = paused ? "Continuar" : "Pausa";
-  $("message").textContent = paused
-    ? "Partida en pausa."
-    : "¡Sigue esquivando!";
+  if (state !== "playing" && state !== "paused") return;
+  state = state === "playing" ? "paused" : "playing";
+  resetControls();
+  $("pause").textContent = state === "paused" ? "Continuar" : "Pausa";
+  $("message").textContent = state === "paused"
+    ? "Partida en pausa. La dificultad también está detenida."
+    : "¡Seguimos!";
   updateHUD();
 }
 
 function dash() {
-  if (!active || paused || player.dashCooldown > 0) return;
-  player.dashTime = .16;
-  player.dashCooldown = 3;
+  if (state !== "playing" || dashCooldown > 0) return;
+  dashDirection = lastDirection;
+  dashTime = .15;
+  dashCooldown = 3.5;
 }
 
-function spawn(type, x = random(22, W - 22), y = -25) {
-  const bomb = type.startsWith("bomb");
-  const speed = bomb
-    ? random(150, 205) + (level - 1) * 17
-    : random(120, 165) + (level - 1) * 10;
+function finishGame() {
+  state = "over";
+  resetControls();
+  $("name").disabled = false;
+  $("start").disabled = false;
+  $("start").textContent = "Otra partida";
+  $("pause").disabled = true;
+  updateHUD();
 
-  objects.push({
-    type, x, y, baseX: x,
-    radius: bomb ? 14 : 12,
-    speed: type === "bombFast" ? speed * 1.45 : speed,
-    phase: random(0, Math.PI * 2),
-    age: 0
+  const finalScore = score;
+  const finalName = playerName;
+  $("message").textContent =
+    "Fin de la partida: " + finalScore + " puntos. Guardando marca…";
+
+  saveScore(finalName, finalScore).then(() => {
+    if (state === "over") {
+      $("message").textContent =
+        "¡Marca guardada! Has conseguido " + finalScore + " puntos.";
+    }
+    loadRanking();
+  }).catch(() => {
+    if (state === "over") {
+      $("message").textContent =
+        "Has conseguido " + finalScore +
+        " puntos, pero no se pudieron guardar en el ranking.";
+    }
   });
 }
 
-function spawnRandom() {
-  const bombChance = Math.min(.68, .40 + (level - 1) * .025);
-  const r = Math.random();
-
-  if (r < bombChance) {
-    const variant = Math.random();
-    spawn(level >= 3 && variant < .25 ? "bombFast"
-      : level >= 2 && variant < .60 ? "bombZig"
-      : "bomb");
-  } else if (r < bombChance + .025) {
-    spawn("shield");
-  } else if (r < bombChance + .05) {
-    spawn("magnet");
-  } else if (r < bombChance + .075) {
-    spawn("freeze");
-  } else {
-    spawn("star");
-  }
-}
-
-function beginRaid() {
-  // Tres carriles peligrosos; siempre quedan otros libres.
-  const lanes = [0, 1, 2, 3, 4, 5];
-  for (let i = lanes.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [lanes[i], lanes[j]] = [lanes[j], lanes[i]];
-  }
-
-  for (const lane of lanes.slice(0, 3)) {
-    warnings.push({ x: lane * 70 + 35, remaining: 1.35 });
-  }
-}
-
-function burst(x, y, color, count = 12) {
-  for (let i = 0; i < count; i++) {
-    particles.push({
-      x, y, vx: random(-110, 110), vy: random(-130, 70),
-      life: .55, color
-    });
-  }
-}
-
-function collect(object) {
-  if (object.type.startsWith("bomb")) {
-    if (player.invincible > 0) return;
-
+function collect(o) {
+  if (o.type === "star") {
+    streak++;
+    score = Math.min(1000000, score + 10 * multiplier());
+    burst(o.x, o.y, "#ffe181");
+  } else if (o.type === "shield") {
+    shield = true;
+    burst(o.x, o.y, "#87d7ff");
+  } else if (o.type === "magnet") {
+    magnet = 7;
+    burst(o.x, o.y, "#da98ff");
+  } else if (o.type === "freeze") {
+    freeze = 5;
+    burst(o.x, o.y, "#86f1ff");
+  } else if (invulnerable <= 0) {
     streak = 0;
-    burst(object.x, object.y, "#ff6c80", 20);
-
+    invulnerable = 1.1;
+    burst(o.x, o.y, "#ff7186");
     if (shield) {
       shield = false;
     } else {
       lives--;
+      if (lives <= 0) finishGame();
     }
-
-    player.invincible = 1.2;
-    if (lives <= 0) endGame();
-    return;
-  }
-
-  burst(object.x, object.y, "#ffe085");
-
-  if (object.type === "star") {
-    streak++;
-    score = Math.min(1000000, score + 10 * multiplier());
-  } else if (object.type === "shield") {
-    shield = true;
-  } else if (object.type === "magnet") {
-    magnet = 7;
-  } else if (object.type === "freeze") {
-    freeze = 5;
   }
 }
 
 function update(dt) {
   elapsed += dt;
-  level = Math.min(16, 1 + Math.floor(elapsed / 12));
-
   magnet = Math.max(0, magnet - dt);
   freeze = Math.max(0, freeze - dt);
-  player.invincible = Math.max(0, player.invincible - dt);
-  player.dashCooldown = Math.max(0, player.dashCooldown - dt);
+  invulnerable = Math.max(0, invulnerable - dt);
+  dashCooldown = Math.max(0, dashCooldown - dt);
 
-  const direction = Number(rightHeld) - Number(leftHeld);
-  if (direction) player.direction = direction;
+  let direction = 0;
+  if (keys.has("arrowleft") || keys.has("a") || leftHeld) direction--;
+  if (keys.has("arrowright") || keys.has("d") || rightHeld) direction++;
+  if (direction) {
+    lastDirection = direction;
+    pointerTarget = null;
+  }
 
-  if (player.dashTime > 0) {
-    player.x += player.direction * 950 * dt;
-    player.dashTime = Math.max(0, player.dashTime - dt);
+  if (dashTime > 0) {
+    player.x += dashDirection * 950 * dt;
+    dashTime = Math.max(0, dashTime - dt);
+  } else if (pointerTarget !== null) {
+    const delta = pointerTarget - player.x;
+    if (Math.abs(delta) > 2) lastDirection = Math.sign(delta);
+    player.x += clamp(delta, -330 * dt, 330 * dt);
   } else {
-    player.x += direction * 320 * dt;
-  }
-  player.x = clamp(player.x, 20, W - 20);
-
-  spawnClock -= dt;
-  if (spawnClock <= 0) {
-    spawnRandom();
-    spawnClock = Math.max(.19, .64 - (level - 1) * .032);
+    player.x += direction * 300 * dt;
   }
 
-  if (elapsed >= nextRaid) {
+  player.x = clamp(player.x, 24, W - 24);
+
+  if (!warning && elapsed >= nextRaid) {
     beginRaid();
-    nextRaid = elapsed + Math.max(7, 15 - level * .5);
+    nextRaid = elapsed + random(22, 30);
   }
 
-  for (let i = warnings.length - 1; i >= 0; i--) {
-    const warning = warnings[i];
+  if (warning) {
     warning.remaining -= dt;
-    if (warning.remaining <= 0) {
-      spawn("bombFast", warning.x);
-      spawn("bomb", warning.x, -105);
-      warnings.splice(i, 1);
+    if (warning.remaining <= 0) releaseRaid();
+  } else {
+    spawnTimer -= dt;
+    if (spawnTimer <= 0) {
+      spawnObject();
+      spawnTimer = difficulty().interval * random(.9, 1.1);
     }
   }
+
+  const slow = freeze > 0 ? .52 : 1;
 
   for (let i = objects.length - 1; i >= 0; i--) {
-    const object = objects[i];
-    object.age += dt;
-    object.y += object.speed * dt * (freeze > 0 ? .48 : 1);
+    const o = objects[i];
+    o.age += dt * slow;
+    o.y += o.speed * dt * slow;
 
-    if (object.type === "bombZig") {
-      object.x = clamp(
-        object.baseX + Math.sin(object.age * 4 + object.phase) * 35,
-        16, W - 16
-      );
+    if (o.style === "zigzag") {
+      o.x += Math.sin(o.age * 4 + o.phase) * 75 * dt * slow;
+      o.x = clamp(o.x, 16, W - 16);
     }
 
-    if (object.type === "star" && magnet > 0) {
-      const dx = player.x - object.x;
-      const dy = player.y - object.y;
-      const distance = Math.hypot(dx, dy);
-      if (distance > 1 && distance < 150) {
-        object.x += dx / distance * 290 * dt;
-        object.y += dy / distance * 290 * dt;
+    if (magnet > 0 && o.type === "star") {
+      const distance = Math.hypot(player.x - o.x, player.y - o.y);
+      if (distance < 145) {
+        o.x += (player.x - o.x) * Math.min(1, dt * 6);
+        o.y += (player.y - o.y) * Math.min(1, dt * 3);
       }
     }
 
-    if (Math.hypot(object.x - player.x, object.y - player.y)
-        < object.radius + player.radius) {
+    const nearX = clamp(o.x,
+      player.x - player.width / 2, player.x + player.width / 2);
+    const nearY = clamp(o.y,
+      player.y - player.height / 2, player.y + player.height / 2);
+
+    if (Math.hypot(o.x - nearX, o.y - nearY) < o.radius) {
       objects.splice(i, 1);
-      collect(object);
-      if (!active) break;
-    } else if (object.y > H + 30) {
-      if (object.type === "star") streak = 0;
+      collect(o);
+      if (state !== "playing") break;
+    } else if (o.y > H + 28) {
+      if (o.type === "star") streak = 0;
       objects.splice(i, 1);
     }
   }
 
   for (let i = particles.length - 1; i >= 0; i--) {
     const p = particles[i];
-    p.life -= dt;
     p.x += p.vx * dt;
     p.y += p.vy * dt;
+    p.life -= dt;
     if (p.life <= 0) particles.splice(i, 1);
   }
 
   updateHUD();
 }
 
-const icons = {
-  star: "⭐", bomb: "💣", bombFast: "💣",
-  bombZig: "💣", shield: "🛡️", magnet: "🧲", freeze: "❄️"
-};
+function drawStar(x, y, radius) {
+  ctx.beginPath();
+  for (let i = 0; i < 10; i++) {
+    const angle = -Math.PI / 2 + i * Math.PI / 5;
+    const r = i % 2 ? radius * .45 : radius;
+    const px = x + Math.cos(angle) * r;
+    const py = y + Math.sin(angle) * r;
+    if (i === 0) ctx.moveTo(px, py);
+    else ctx.lineTo(px, py);
+  }
+  ctx.closePath();
+  ctx.fill();
+}
 
 function draw() {
   ctx.clearRect(0, 0, W, H);
-  ctx.fillStyle = freeze > 0 ? "#10283f" : "#0b132a";
+  ctx.fillStyle = freeze > 0 ? "#10263c" : "#09132c";
   ctx.fillRect(0, 0, W, H);
 
-  ctx.fillStyle = "#6f8ab6";
-  for (let i = 0; i < 45; i++) {
-    const x = (i * 83 + 17) % W;
-    const y = (i * 97 + elapsed * (8 + i % 5)) % H;
-    ctx.fillRect(x, y, 2, 2);
+  ctx.fillStyle = "#afc6ec";
+  for (const s of stars) {
+    ctx.globalAlpha = .55;
+    ctx.fillRect(s.x, (s.y + elapsed * s.speed) % H, s.size, s.size);
   }
+  ctx.globalAlpha = 1;
 
-  for (const warning of warnings) {
-    ctx.fillStyle = "rgba(255,65,90,.17)";
-    ctx.fillRect(warning.x - 27, 0, 54, H);
-    ctx.fillStyle = "#ff647e";
-    ctx.font = "bold 25px system-ui";
+  if (warning) {
+    const laneWidth = W / 5;
+    for (let lane = 0; lane < 5; lane++) {
+      if (lane === warning.safeLane) {
+        ctx.fillStyle = "#70ffc21c";
+        ctx.fillRect(lane * laneWidth, 0, laneWidth, H);
+      } else {
+        ctx.fillStyle =
+          `rgba(255,65,90,${.10 + .12 * Math.abs(Math.sin(elapsed * 10))})`;
+        ctx.fillRect(lane * laneWidth + 2, 0, laneWidth - 4, H);
+        ctx.fillStyle = "#ffb1b9";
+        ctx.font = "bold 22px system-ui";
+        ctx.textAlign = "center";
+        ctx.fillText("!", laneWidth * (lane + .5), 35);
+      }
+    }
+    ctx.fillStyle = "#fff0cc";
+    ctx.font = "bold 16px system-ui";
     ctx.textAlign = "center";
-    ctx.fillText("!", warning.x, 32);
+    ctx.fillText("¡Busca el hueco!", W / 2, 66);
   }
 
-  ctx.textAlign = "center";
-  ctx.textBaseline = "middle";
-
-  for (const object of objects) {
-    if (object.type === "bombFast") {
-      ctx.strokeStyle = "#ff8b57";
-      ctx.lineWidth = 3;
+  for (const o of objects) {
+    if (o.type === "star") {
+      ctx.fillStyle = "#ffda72";
+      drawStar(o.x, o.y, 13);
+    } else if (o.type === "bomb") {
+      ctx.fillStyle = o.style === "fast" ? "#ff8d54"
+        : o.style === "zigzag" ? "#cb8aff" : "#ff637d";
       ctx.beginPath();
-      ctx.moveTo(object.x, object.y - 30);
-      ctx.lineTo(object.x, object.y - 15);
+      ctx.arc(o.x, o.y, 12, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = "#ffe0b1";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(o.x + 3, o.y - 11);
+      ctx.lineTo(o.x + 8, o.y - 18);
       ctx.stroke();
+      ctx.fillStyle = "#39172b";
+      ctx.font = "bold 14px system-ui";
+      ctx.textAlign = "center";
+      ctx.fillText("×", o.x, o.y + 5);
+    } else {
+      ctx.font = "23px system-ui";
+      ctx.textAlign = "center";
+      ctx.fillText(
+        { shield: "🛡️", magnet: "🧲", freeze: "❄️" }[o.type],
+        o.x, o.y + 8
+      );
     }
-    if (object.type === "bombZig") {
-      ctx.fillStyle = "#c58aff";
-      ctx.fillRect(object.x - 12, object.y + 17, 24, 3);
-    }
-    ctx.font = "26px system-ui";
-    ctx.fillText(icons[object.type], object.x, object.y);
   }
+
+  if (magnet > 0) {
+    ctx.strokeStyle = "#d29cff44";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(player.x, player.y, 145, 0, Math.PI * 2);
+    ctx.stroke();
+  }
+
+  ctx.save();
+  if (invulnerable > 0 && Math.floor(invulnerable * 14) % 2) {
+    ctx.globalAlpha = .35;
+  }
+  ctx.fillStyle = dashTime > 0 ? "#fff1a1" : "#79e1ff";
+  ctx.beginPath();
+  ctx.moveTo(player.x, player.y - 17);
+  ctx.lineTo(player.x + 22, player.y + 10);
+  ctx.lineTo(player.x, player.y + 4);
+  ctx.lineTo(player.x - 22, player.y + 10);
+  ctx.closePath();
+  ctx.fill();
+
+  if (shield) {
+    ctx.strokeStyle = "#91caff";
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.arc(player.x, player.y, 31, 0, Math.PI * 2);
+    ctx.stroke();
+  }
+  ctx.restore();
 
   for (const p of particles) {
     ctx.globalAlpha = Math.max(0, p.life / .55);
@@ -575,137 +608,166 @@ function draw() {
   }
   ctx.globalAlpha = 1;
 
-  if (shield || magnet > 0) {
-    ctx.strokeStyle = shield ? "#78e5ff" : "#bd94ff";
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.arc(player.x, player.y, shield ? 27 : 34, 0, Math.PI * 2);
-    ctx.stroke();
-  }
-
-  if (player.invincible <= 0 ||
-      Math.floor(player.invincible * 12) % 2 === 0) {
-    ctx.fillStyle = player.dashTime > 0 ? "#ffffff" : "#77dcff";
-    ctx.beginPath();
-    ctx.moveTo(player.x, player.y - 20);
-    ctx.lineTo(player.x - 18, player.y + 15);
-    ctx.lineTo(player.x, player.y + 8);
-    ctx.lineTo(player.x + 18, player.y + 15);
-    ctx.closePath();
-    ctx.fill();
-
-    ctx.fillStyle = "#ffbd60";
-    ctx.fillRect(player.x - 5, player.y + 14, 10, 10);
-  }
-
-  if (!active || paused) {
-    ctx.fillStyle = "rgba(3,8,22,.65)";
+  if (state !== "playing") {
+    ctx.fillStyle = "#050b20aa";
     ctx.fillRect(0, 0, W, H);
-    ctx.fillStyle = "#eef3ff";
+    ctx.fillStyle = "#eef5ff";
     ctx.font = "bold 28px system-ui";
-    ctx.fillText(paused ? "PAUSA" : "ZONA DE PELIGRO", W / 2, H / 2);
+    ctx.textAlign = "center";
+    ctx.fillText(
+      state === "paused" ? "Pausa"
+        : state === "over" ? "Fin de la partida" : "Órbita Estelar",
+      W / 2, H / 2 - 10
+    );
     ctx.font = "16px system-ui";
     ctx.fillText(
-      paused ? "Respira… y continúa." : "Estrellas sí. Bombas no.",
-      W / 2, H / 2 + 36
+      state === "paused" ? "Pulsa Continuar"
+        : state === "over" ? score + " puntos" : "Pulsa Jugar para despegar",
+      W / 2, H / 2 + 25
     );
   }
-
-  ctx.textBaseline = "alphabetic";
 }
 
-function frame(now) {
-  const dt = Math.min(.033, (now - lastFrame) / 1000 || 0);
-  lastFrame = now;
-  if (active && !paused) update(dt);
-  draw();
-  requestAnimationFrame(frame);
-}
-
-function bindDirection(id, side) {
+function bindDirection(id, setHeld) {
   const button = $(id);
-  button.addEventListener("pointerdown", event => {
-    event.preventDefault();
-    if (!active || paused) return;
-    button.setPointerCapture(event.pointerId);
-    if (side === "left") leftHeld = true;
-    else rightHeld = true;
+  button.addEventListener("pointerdown", e => {
+    e.preventDefault();
+    button.setPointerCapture(e.pointerId);
+    setHeld(true);
+    pointerTarget = null;
   });
-
-  const release = () => {
-    if (side === "left") leftHeld = false;
-    else rightHeld = false;
-  };
-
-  button.addEventListener("pointerup", release);
-  button.addEventListener("pointercancel", release);
-  button.addEventListener("lostpointercapture", release);
+  for (const event of ["pointerup", "pointercancel", "lostpointercapture"]) {
+    button.addEventListener(event, () => setHeld(false));
+  }
 }
+bindDirection("left", value => leftHeld = value);
+bindDirection("right", value => rightHeld = value);
 
-bindDirection("left", "left");
-bindDirection("right", "right");
-
-function movePointer(event) {
-  if (!active || paused || !dragging) return;
+function updatePointer(e) {
   const rect = canvas.getBoundingClientRect();
-  const x = clamp((event.clientX - rect.left) * W / rect.width, 20, W - 20);
-  if (Math.abs(x - player.x) > 1) {
-    player.direction = Math.sign(x - player.x);
-  }
-  if (player.dashTime <= 0) player.x = x;
+  pointerTarget = clamp((e.clientX - rect.left) * W / rect.width, 24, W - 24);
 }
-
-canvas.addEventListener("pointerdown", event => {
-  if (!active || paused) return;
+canvas.addEventListener("pointerdown", e => {
+  if (state !== "playing") return;
   dragging = true;
-  canvas.setPointerCapture(event.pointerId);
-  movePointer(event);
+  canvas.setPointerCapture(e.pointerId);
+  updatePointer(e);
 });
-canvas.addEventListener("pointermove", movePointer);
-for (const type of ["pointerup", "pointercancel", "lostpointercapture"]) {
-  canvas.addEventListener(type, () => { dragging = false; });
+canvas.addEventListener("pointermove", e => {
+  if (dragging && state === "playing") updatePointer(e);
+});
+for (const event of ["pointerup", "pointercancel", "lostpointercapture"]) {
+  canvas.addEventListener(event, () => {
+    dragging = false;
+    pointerTarget = null;
+  });
 }
 
-document.addEventListener("keydown", event => {
-  if (event.target instanceof HTMLInputElement) return;
-  const key = event.key.toLowerCase();
-
-  if (["arrowleft", "arrowright", "a", "d", "p", " "].includes(key)) {
-    event.preventDefault();
+window.addEventListener("keydown", e => {
+  if (e.target instanceof HTMLInputElement) return;
+  const key = e.key.toLowerCase();
+  if (["arrowleft", "arrowright", " "].includes(key)) {
+    if (state === "playing" || state === "paused") e.preventDefault();
   }
-  if (!active) return;
-  if (key === "p" && !event.repeat) togglePause();
-  if (paused) return;
-  if (key === "arrowleft" || key === "a") leftHeld = true;
-  if (key === "arrowright" || key === "d") rightHeld = true;
-  if (key === " " && !event.repeat) dash();
+  keys.add(key);
+  if (!e.repeat && key === "p") togglePause();
+  if (!e.repeat && key === " ") dash();
+});
+window.addEventListener("keyup", e => keys.delete(e.key.toLowerCase()));
+window.addEventListener("blur", () => {
+  resetControls();
+  if (state === "playing") togglePause();
+});
+document.addEventListener("visibilitychange", () => {
+  if (document.hidden && state === "playing") togglePause();
 });
 
-document.addEventListener("keyup", event => {
-  const key = event.key.toLowerCase();
-  if (key === "arrowleft" || key === "a") leftHeld = false;
-  if (key === "arrowright" || key === "d") rightHeld = false;
-});
+$("start").onclick = startGame;
+$("pause").onclick = togglePause;
+$("dash").onclick = dash;
 
-function autoPause() {
-  leftHeld = rightHeld = dragging = false;
-  if (active && !paused) togglePause();
+async function databaseRequest(query, options = {}) {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 12000);
+  try {
+    const response = await fetch(
+      SUPABASE_URL + "/rest/v1/puntuaciones" + query,
+      {
+        ...options,
+        signal: controller.signal,
+        headers: {
+          apikey: SUPABASE_KEY,
+          "Content-Type": "application/json",
+          ...options.headers
+        }
+      }
+    );
+    if (!response.ok) throw new Error("HTTP " + response.status);
+    return response;
+  } finally {
+    clearTimeout(timer);
+  }
 }
 
-window.addEventListener("blur", autoPause);
-document.addEventListener("visibilitychange", () => {
-  if (document.hidden) autoPause();
-});
+async function saveScore(nombre, puntos) {
+  await databaseRequest("", {
+    method: "POST",
+    headers: { Prefer: "return=minimal" },
+    body: JSON.stringify({ nombre, puntos })
+  });
+}
 
-$("start").addEventListener("click", startGame);
-$("pause").addEventListener("click", togglePause);
-$("dash").addEventListener("click", dash);
-$("refresh").addEventListener("click", loadRanking);
+let loadingRanking = false;
+async function loadRanking() {
+  if (loadingRanking) return;
+  loadingRanking = true;
+  $("refresh").disabled = true;
+  $("rankStatus").textContent = "Actualizando…";
+  try {
+    const response = await databaseRequest(
+      "?select=nombre,puntos,creado_en&order=puntos.desc,creado_en.asc&limit=10"
+    );
+    const rows = await response.json();
+    $("ranking").replaceChildren();
 
+    for (const row of rows) {
+      const li = document.createElement("li");
+      const title = document.createElement("strong");
+      const detail = document.createElement("small");
+      title.textContent = row.nombre + " — " +
+        Number(row.puntos).toLocaleString("es-ES") + " puntos";
+      detail.textContent = new Date(row.creado_en).toLocaleString("es-ES");
+      li.append(title, detail);
+      $("ranking").append(li);
+    }
+
+    $("rankStatus").textContent = rows.length
+      ? "Ranking actualizado. Se refresca automáticamente."
+      : "Todavía no hay marcas. ¡Consigue la primera!";
+  } catch {
+    $("rankStatus").textContent =
+      "No se pudo actualizar. Comprueba la conexión y los permisos de Supabase.";
+  } finally {
+    loadingRanking = false;
+    $("refresh").disabled = false;
+  }
+}
+
+$("refresh").onclick = loadRanking;
 setInterval(() => {
   if (!document.hidden) loadRanking();
 }, 30000);
 
+let previous = performance.now();
+function frame(now) {
+  const dt = Math.min((now - previous) / 1000, .033);
+  previous = now;
+  if (state === "playing") update(dt);
+  draw();
+  requestAnimationFrame(frame);
+}
+
+updateHUD();
 loadRanking();
 requestAnimationFrame(frame);
 </script>
