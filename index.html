@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Órbita Estelar · Dificultad progresiva</title>
+<title>Órbita Estelar · Punto de no retorno</title>
 <style>
 * { box-sizing: border-box; }
 body {
@@ -44,18 +44,27 @@ canvas {
   background: #09132c; border: 1px solid #536996;
   border-radius: 14px; touch-action: none;
 }
-.direction { touch-action: none; user-select: none; min-width: 52px; }
-#effects { color: #88ecff; min-height: 28px; margin-top: 10px; }
-#message { min-height: 48px; line-height: 1.5; }
+.direction {
+  touch-action: none; user-select: none;
+  -webkit-user-select: none; min-width: 52px;
+}
+#effects { color: #88ecff; min-height: 48px; margin-top: 10px; line-height: 1.5; }
+#message { min-height: 60px; line-height: 1.5; }
 #message, #rankStatus { overflow-wrap: anywhere; }
+#stage { min-height: 48px; font-weight: bold; line-height: 1.5; }
 .bar {
-  height: 7px; background: #283654; border-radius: 8px;
-  overflow: hidden; margin: 8px 0;
+  height: 9px; background: #283654; border-radius: 8px;
+  overflow: hidden; margin: 8px 0 12px;
 }
 #difficultyBar {
   height: 100%; width: 0%;
   background: linear-gradient(90deg, #6be8b1, #ffcd70, #ff6685);
 }
+.maximum #stage { color: #ff9bbd; }
+.maximum #difficultyBar {
+  background: linear-gradient(90deg, #ff754f, #ff438d, #c58aff);
+}
+.maximum canvas { border-color: #ee6799; }
 ol { padding-left: 28px; }
 li { padding: 12px 0; border-bottom: 1px solid #35466d; }
 li strong { display: block; overflow-wrap: anywhere; }
@@ -69,13 +78,12 @@ small { color: #b8c8e8; }
 <body>
 <main>
   <h1>🌌 Órbita Estelar</h1>
-  <p class="intro">Empieza tranquilo. Sobrevive al caos.</p>
+  <p class="intro">Empieza tranquilo. Cruza el punto de no retorno.</p>
 
   <div class="layout">
-    <section class="panel" aria-label="Juego">
+    <section id="gamePanel" class="panel" aria-label="Juego">
       <label for="name">Tu apodo</label>
-      <input id="name" maxlength="20"
-             placeholder="Jugador" autocomplete="nickname">
+      <input id="name" maxlength="20" placeholder="Jugador" autocomplete="nickname">
 
       <div class="stats">
         <span>⭐ <b id="score">0</b></span>
@@ -98,8 +106,7 @@ small { color: #b8c8e8; }
         <button id="left" class="direction" aria-label="Izquierda">◀</button>
         <button id="start">Jugar</button>
         <button id="pause" class="secondary" disabled>Pausa</button>
-        <button id="dash" class="secondary" disabled
-                aria-label="Impulso lateral">⚡</button>
+        <button id="dash" class="secondary" disabled aria-label="Impulso lateral">⚡</button>
         <button id="right" class="direction" aria-label="Derecha">▶</button>
       </div>
 
@@ -111,12 +118,16 @@ small { color: #b8c8e8; }
         <strong>Controles:</strong> flechas o A/D para moverte,
         Espacio para impulso y P para pausar.
         En móvil puedes usar los botones o arrastrar la nave.<br><br>
-        ⭐ Las estrellas suman puntos. Si se escapan, solo rompen la racha.<br>
+        ⭐ Atrapa estrellas para sumar puntos y aumentar la racha.
+        Si se escapan, solo rompen la racha.<br>
         💣 Las bombas quitan vida. No aparecen corazones.<br>
-        🛡️ El escudo absorbe un impacto.<br>
+        🛡️ El escudo absorbe un impacto y no se acumula.<br>
         🧲 El imán atrae estrellas cercanas.<br>
-        ❄️ La congelación ralentiza la caída.<br>
-        🚨 Durante los bombardeos busca la columna sin aviso rojo.<br><br>
+        ❄️ La congelación ralentiza los objetos.<br>
+        🚨 La franja azul queda libre de bombas del bombardeo,
+        pero debes seguir esquivando los demás objetos.<br><br>
+        🌋 Sobrevive hasta el <strong>Punto de no retorno</strong>:
+        la intensidad llega a su máximo y deja de aumentar.<br><br>
         El impulso sirve para esquivar, pero no da inmunidad.
       </div>
     </section>
@@ -127,8 +138,8 @@ small { color: #b8c8e8; }
       <p id="rankStatus" role="status">Cargando ranking…</p>
       <button id="refresh" class="secondary">Actualizar ranking</button>
       <p class="note">
-        Se conservan las marcas anteriores, aunque se consiguieran
-        con una dificultad diferente.
+        Este juego no borra las puntuaciones existentes.
+        Las marcas de otras versiones pueden tener una dificultad diferente.
       </p>
       <p class="note">
         Ranking informal entre amigos: los resultados se calculan
@@ -141,69 +152,423 @@ small { color: #b8c8e8; }
 <script>
 "use strict";
 
+// Esta versión no se ha ejecutado ni se ha comprobado la conexión desde aquí.
 const SUPABASE_URL = "https://pmptaaofnyqchnynngaq.supabase.co";
 const SUPABASE_KEY = "sb_publishable_El-USjAgVQgpwS4xuS1gdg_Tl_JfLdY";
+const SCORE_TABLE = "puntuaciones";
+
+// Se detectan combinaciones habituales de columnas sin modificar la tabla.
+// Si tu tabla usa otros nombres, añade la combinación correspondiente aquí.
+const SCORE_SCHEMAS = [
+  { name: "nombre", score: "puntuacion" },
+  { name: "nombre", score: "puntos" },
+  { name: "apodo", score: "puntuacion" },
+  { name: "apodo", score: "puntos" },
+  { name: "nombre", score: "score" },
+  { name: "name", score: "score" },
+  { name: "nickname", score: "score" },
+  { name: "jugador", score: "puntuacion" }
+];
 
 const $ = id => document.getElementById(id);
 const canvas = $("game");
 const ctx = canvas.getContext("2d");
-const W = canvas.width, H = canvas.height;
+const W = canvas.width;
+const H = canvas.height;
 const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
 const random = (a, b) => a + Math.random() * (b - a);
+
+const MAX_DIFFICULTY_TIME = 100;
+const MAXIMUM_BANNER_DURATION = 4.5;
+const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
 
 let state = "ready";
 let elapsed = 0, score = 0, lives = 3, streak = 0;
 let shield = false, magnet = 0, freeze = 0, invulnerable = 0;
 let dashCooldown = 0, dashTime = 0, dashDirection = 1;
-let spawnTimer = 0, nextRaid = 65, warning = null;
+let spawnTimer = 0.6, nextRaid = 65, warning = null;
+let maximumReached = false, maximumBanner = 0;
 let objects = [], particles = [];
-let player = { x: W / 2, y: H - 43, width: 44, height: 22 };
-let lastDirection = 1, pointerTarget = null, dragging = false;
-let playerName = "Jugador";
-let leftHeld = false, rightHeld = false;
-const keys = new Set();
+let lastDirection = 1, touchTarget = null, dragPointer = null;
+let gameNumber = 0, playerName = "Jugador";
+let lastFrame = performance.now();
+let schemaPromise = null, rankRequest = 0;
 
-const stars = Array.from({ length: 65 }, () => ({
-  x: random(0, W), y: random(0, H),
-  size: random(.7, 2), speed: random(5, 22)
+const player = { x: W / 2, y: H - 43, width: 44, height: 22 };
+const keys = new Set();
+const leftPointers = new Set();
+const rightPointers = new Set();
+
+const stars = Array.from({ length: 58 }, () => ({
+  x: random(0, W),
+  y: random(0, H),
+  size: random(0.7, 2),
+  speed: random(8, 28)
 }));
 
 try {
-  $("name").value = localStorage.getItem("orbita_apodo") || "";
+  $("name").value = localStorage.getItem("orbita-apodo") || "";
 } catch {}
 
-// El tiempo activo es la única fuente de dificultad.
-// Pausar no hace avanzar esta curva.
 function difficulty() {
-  const progress = clamp(elapsed / 180, 0, 1);
-  const smooth = progress * progress * (3 - 2 * progress);
+  const progress = clamp(elapsed / MAX_DIFFICULTY_TIME, 0, 1);
+  const ramp = clamp((elapsed - 12) / (MAX_DIFFICULTY_TIME - 12), 0, 1);
+  const smooth = ramp * ramp * (3 - 2 * ramp);
 
   return {
     progress,
-    // De caída lenta a rápida, sin saltos entre niveles.
-    speed: 88 + 160 * smooth,
-    // De poco más de un objeto por segundo a unos tres.
-    interval: 0.90 - 0.58 * smooth,
-    // Las bombas pasan gradualmente de poco frecuentes a habituales.
-    bombChance: 0.10 + 0.40 * smooth,
-    zigzagChance: elapsed < 35
-      ? 0 : 0.30 * clamp((elapsed - 35) / 85, 0, 1),
-    fastChance: elapsed < 80
-      ? 0 : 0.24 * clamp((elapsed - 80) / 100, 0, 1)
+    speed: 88 + 272 * smooth,
+    interval: 0.90 - 0.67 * smooth,
+    bombChance: 0.10 + 0.45 * smooth,
+    zigzagChance: 0.30 * clamp((elapsed - 30) / 60, 0, 1),
+    fastChance: 0.26 * clamp((elapsed - 55) / 45, 0, 1),
+    raidWarning: 1.8 - 0.2 * smooth,
+    raidMin: 27 - 11 * smooth,
+    raidMax: 34 - 13 * smooth
   };
 }
 
 function stageName() {
   if (elapsed < 20) return "🌱 Despegue tranquilo";
-  if (elapsed < 45) return "✨ Cogiendo velocidad";
-  if (elapsed < 80) return "💣 Zona de riesgo";
-  if (elapsed < 130) return "🚨 Espacio hostil";
-  if (elapsed < 180) return "🔥 Tormenta orbital";
-  return "🌋 Intensidad máxima";
+  if (elapsed < 40) return "✨ La órbita empieza a temblar";
+  if (elapsed < 60) return "💣 Campo de minas";
+  if (elapsed < 80) return "🚨 Se aproxima la tormenta";
+  if (elapsed < MAX_DIFFICULTY_TIME) return "🔥 Al borde del punto de no retorno";
+
+  return "🌋 MÁXIMO · SOBREVIVE · " +
+    Math.floor(elapsed - MAX_DIFFICULTY_TIME) + " s resistiendo";
 }
 
 function multiplier() {
   return Math.min(5, 1 + Math.floor(streak / 5));
+}
+
+function burst(x, y, color, amount = 14) {
+  const count = reducedMotion.matches ? Math.min(amount, 5) : amount;
+  for (let i = 0; i < count; i++) {
+    particles.push({
+      x, y, color,
+      vx: random(-125, 125),
+      vy: random(-150, 80),
+      life: random(0.35, 0.8)
+    });
+  }
+}
+
+function enterMaximum() {
+  maximumReached = true;
+  maximumBanner = MAXIMUM_BANNER_DURATION;
+  $("gamePanel").classList.add("maximum");
+  $("message").textContent =
+    "🌋 PUNTO DE NO RETORNO. Hasta aquí era el calentamiento. " +
+    "Has alcanzado la intensidad máxima: ahora toca resistir.";
+  burst(36, H * .4, "#ff739f", 25);
+  burst(W - 36, H * .4, "#ba91ff", 25);
+}
+
+function clearControls() {
+  keys.clear();
+  leftPointers.clear();
+  rightPointers.clear();
+  touchTarget = null;
+  dragPointer = null;
+}
+
+function startGame() {
+  gameNumber++;
+  clearControls();
+  elapsed = 0;
+  score = 0;
+  lives = 3;
+  streak = 0;
+  shield = false;
+  magnet = 0;
+  freeze = 0;
+  invulnerable = 0;
+  dashCooldown = 0;
+  dashTime = 0;
+  dashDirection = 1;
+  lastDirection = 1;
+  spawnTimer = 0.6;
+  nextRaid = 65;
+  warning = null;
+  maximumReached = false;
+  maximumBanner = 0;
+  objects = [];
+  particles = [];
+  player.x = W / 2;
+  playerName = $("name").value.trim().slice(0, 20) || "Jugador";
+
+  try {
+    localStorage.setItem("orbita-apodo", playerName);
+  } catch {}
+
+  state = "playing";
+  lastFrame = performance.now();
+  $("name").disabled = true;
+  $("start").textContent = "Reiniciar";
+  $("pause").disabled = false;
+  $("pause").textContent = "Pausa";
+  $("gamePanel").classList.remove("maximum");
+  $("message").textContent =
+    "Despegue autorizado. Empieza con calma: la órbita se complicará poco a poco.";
+  updateHUD();
+}
+
+function togglePause() {
+  if (state === "playing") {
+    state = "paused";
+    clearControls();
+    $("pause").textContent = "Continuar";
+    $("message").textContent = "Partida en pausa. Respira: el universo puede esperar.";
+  } else if (state === "paused") {
+    state = "playing";
+    lastFrame = performance.now();
+    $("pause").textContent = "Pausa";
+    $("message").textContent = maximumReached
+      ? "🌋 Sigues en el punto de no retorno. Mantén la órbita."
+      : "De nuevo en órbita. ¡Vamos!";
+  }
+  updateHUD();
+}
+
+function dash() {
+  if (state !== "playing" || dashCooldown > 0) return;
+  dashDirection = lastDirection;
+  dashTime = 0.14;
+  dashCooldown = 3;
+  burst(player.x, player.y + 8, "#8feaff", 8);
+}
+
+function addObject(type, x, speed, variant = "normal", y = -24) {
+  objects.push({
+    type, x, baseX: x, y, speed, variant,
+    age: 0,
+    phase: random(0, Math.PI * 2),
+    radius: type === "bomb" ? 13 : 12
+  });
+}
+
+function spawnObject() {
+  const d = difficulty();
+  const x = random(22, W - 22);
+  const powerChance = elapsed < 8 ? 0 : 0.055;
+  let type;
+
+  if (Math.random() < powerChance) {
+    const roll = Math.random();
+    type = roll < .24 ? "shield" : roll < .62 ? "magnet" : "freeze";
+  } else {
+    type = Math.random() < d.bombChance ? "bomb" : "star";
+  }
+
+  let variant = "normal";
+  let speed = d.speed * random(.90, 1.10);
+
+  if (type === "bomb") {
+    const roll = Math.random();
+    if (roll < d.fastChance) {
+      variant = "fast";
+      speed *= 1.40;
+    } else if (roll < d.fastChance + d.zigzagChance) {
+      variant = "zigzag";
+    }
+  } else if (type !== "star") {
+    speed *= .85;
+  }
+
+  addObject(type, x, speed, variant);
+}
+
+function beginRaid() {
+  warning = {
+    remaining: difficulty().raidWarning,
+    safeLane: Math.floor(random(0, 5))
+  };
+}
+
+function releaseRaid(safeLane) {
+  const laneWidth = W / 5;
+  const speed = difficulty().speed * 1.16;
+
+  for (let lane = 0; lane < 5; lane++) {
+    if (lane === safeLane) continue;
+
+    for (let row = 0; row < 2; row++) {
+      addObject(
+        "bomb",
+        laneWidth * (lane + .5),
+        speed,
+        "raid",
+        -24 - row * 92
+      );
+    }
+  }
+}
+
+function hitBomb() {
+  if (invulnerable > 0) return;
+
+  streak = 0;
+  if (shield) {
+    shield = false;
+    invulnerable = .8;
+    burst(player.x, player.y, "#7deaff", 22);
+  } else {
+    lives--;
+    invulnerable = 1.2;
+    burst(player.x, player.y, "#ff6f92", 22);
+    if (lives <= 0) endGame();
+  }
+}
+
+function collect(object) {
+  switch (object.type) {
+    case "star":
+      streak++;
+      score += 10 * multiplier();
+      burst(object.x, object.y, "#ffe186", 7);
+      break;
+    case "shield":
+      shield = true;
+      burst(object.x, object.y, "#7ee6ff");
+      break;
+    case "magnet":
+      magnet = 8;
+      burst(object.x, object.y, "#db9dff");
+      break;
+    case "freeze":
+      freeze = 5;
+      burst(object.x, object.y, "#b2f5ff");
+      break;
+    case "bomb":
+      hitBomb();
+      break;
+  }
+}
+
+function collides(object, oldY) {
+  const closestX = clamp(
+    object.x,
+    player.x - player.width / 2,
+    player.x + player.width / 2
+  );
+  const closestY = clamp(
+    object.y,
+    player.y - player.height / 2,
+    player.y + player.height / 2
+  );
+  const dx = object.x - closestX;
+  const dy = object.y - closestY;
+
+  if (dx * dx + dy * dy <= object.radius * object.radius) return true;
+
+  // Evita saltarse la nave si un objeto cruza su altura entre fotogramas.
+  return oldY < player.y &&
+    object.y >= player.y &&
+    Math.abs(object.x - player.x) < player.width / 2 + object.radius;
+}
+
+function update(dt) {
+  if (state !== "playing") return;
+
+  elapsed += dt;
+  maximumBanner = Math.max(0, maximumBanner - dt);
+
+  if (!maximumReached && elapsed >= MAX_DIFFICULTY_TIME) enterMaximum();
+
+  magnet = Math.max(0, magnet - dt);
+  freeze = Math.max(0, freeze - dt);
+  invulnerable = Math.max(0, invulnerable - dt);
+  dashCooldown = Math.max(0, dashCooldown - dt);
+
+  const left = keys.has("arrowleft") || keys.has("a") || leftPointers.size > 0;
+  const right = keys.has("arrowright") || keys.has("d") || rightPointers.size > 0;
+  let direction = Number(right) - Number(left);
+
+  if (direction !== 0) {
+    lastDirection = direction;
+    touchTarget = null;
+  }
+
+  if (dashTime > 0) {
+    player.x += dashDirection * 900 * dt;
+    dashTime = Math.max(0, dashTime - dt);
+  } else if (direction !== 0) {
+    player.x += direction * 330 * dt;
+  } else if (touchTarget !== null) {
+    const difference = touchTarget - player.x;
+    if (Math.abs(difference) > 1) {
+      lastDirection = Math.sign(difference);
+      player.x += clamp(difference, -360 * dt, 360 * dt);
+    }
+  }
+
+  player.x = clamp(player.x, player.width / 2 + 3, W - player.width / 2 - 3);
+
+  spawnTimer -= dt;
+  if (spawnTimer <= 0) {
+    spawnObject();
+    spawnTimer += difficulty().interval * random(.88, 1.12);
+  }
+
+  if (!warning && elapsed >= nextRaid) {
+    const d = difficulty();
+    beginRaid();
+    nextRaid = elapsed + random(d.raidMin, d.raidMax);
+  }
+
+  if (warning) {
+    warning.remaining -= dt;
+    if (warning.remaining <= 0) {
+      releaseRaid(warning.safeLane);
+      warning = null;
+    }
+  }
+
+  for (let i = objects.length - 1; i >= 0; i--) {
+    const object = objects[i];
+    const oldY = object.y;
+    const slow = freeze > 0 ? .48 : 1;
+    object.age += dt * slow;
+    object.y += object.speed * dt * slow;
+
+    if (object.variant === "zigzag") {
+      object.x = clamp(
+        object.baseX + Math.sin(object.age * 4 + object.phase) * 40,
+        16, W - 16
+      );
+    }
+
+    if (object.type === "star" && magnet > 0) {
+      const dx = player.x - object.x;
+      const dy = player.y - object.y;
+      const distance = Math.hypot(dx, dy);
+      if (distance < 150 && distance > 1) {
+        const attraction = Math.min(270 * dt, distance);
+        object.x += dx / distance * attraction;
+        object.y += dy / distance * attraction;
+      }
+    }
+
+    if (collides(object, oldY)) {
+      objects.splice(i, 1);
+      collect(object);
+      if (state !== "playing") return;
+    } else if (object.y > H + 30) {
+      if (object.type === "star") streak = 0;
+      objects.splice(i, 1);
+    }
+  }
+
+  for (let i = particles.length - 1; i >= 0; i--) {
+    const p = particles[i];
+    p.life -= dt;
+    p.x += p.vx * dt;
+    p.y += p.vy * dt;
+    p.vy += 120 * dt;
+    if (p.life <= 0) particles.splice(i, 1);
+  }
 }
 
 function updateHUD() {
@@ -215,289 +580,76 @@ function updateHUD() {
   $("difficultyBar").style.width = difficulty().progress * 100 + "%";
 
   const effects = [];
-  if (shield) effects.push("🛡️ Escudo");
+  if (shield) effects.push("🛡️ Escudo activo");
   if (magnet > 0) effects.push("🧲 " + Math.ceil(magnet) + " s");
   if (freeze > 0) effects.push("❄️ " + Math.ceil(freeze) + " s");
-  if (state === "playing" || state === "paused") {
-    effects.push(dashCooldown > 0
-      ? "⚡ " + Math.ceil(dashCooldown) + " s"
-      : "⚡ Impulso listo");
-  }
-  $("effects").textContent = effects.join(" · ") || "Todo listo para despegar.";
+  effects.push(dashCooldown > 0
+    ? "⚡ Recarga: " + dashCooldown.toFixed(1) + " s"
+    : "⚡ Impulso listo");
+
+  $("effects").textContent = effects.join(" · ");
   $("dash").disabled = state !== "playing" || dashCooldown > 0;
 }
 
-function burst(x, y, color) {
-  for (let i = 0; i < 12; i++) {
-    particles.push({
-      x, y, vx: random(-100, 100), vy: random(-120, 70),
-      life: .55, color
-    });
-  }
-}
+function drawSpaceBackground() {
+  const heat = clamp((elapsed - 80) / (MAX_DIFFICULTY_TIME - 80), 0, 1);
+  ctx.fillStyle = freeze > 0 ? "#10263c" : "#09132c";
+  ctx.fillRect(0, 0, W, H);
 
-function addObject(type, x, speed, style = "normal") {
-  objects.push({
-    type, x, y: -22, speed, style,
-    age: 0, phase: random(0, Math.PI * 2),
-    radius: type === "bomb" ? 12 : 11
-  });
-}
-
-function spawnObject() {
-  const d = difficulty();
-  let type = "star";
-  const roll = Math.random();
-
-  // Pequeña ventana inicial para familiarizarse con el movimiento.
-  if (elapsed > 5 && roll < d.bombChance) {
-    type = "bomb";
-  } else if (roll > .975) {
-    type = "shield";
-  } else if (roll > .95) {
-    type = "magnet";
-  } else if (roll > .925) {
-    type = "freeze";
+  if (heat > 0) {
+    const glow = ctx.createLinearGradient(0, 0, W, H);
+    glow.addColorStop(0, "#701c43");
+    glow.addColorStop(.5, "#28163f");
+    glow.addColorStop(1, "#8c2840");
+    ctx.save();
+    ctx.globalAlpha = heat * .68;
+    ctx.fillStyle = glow;
+    ctx.fillRect(0, 0, W, H);
+    ctx.restore();
   }
 
-  let style = "normal";
-  let speed = d.speed * random(.85, 1.12);
+  for (const star of stars) {
+    const travel = reducedMotion.matches ? 0 :
+      elapsed * star.speed +
+      Math.max(0, elapsed - MAX_DIFFICULTY_TIME) * star.speed * 4;
 
-  if (type === "bomb") {
-    const variation = Math.random();
-    if (variation < d.fastChance) {
-      style = "fast";
-      speed *= 1.35;
-    } else if (variation < d.fastChance + d.zigzagChance) {
-      style = "zigzag";
-    }
+    const y = (star.y + travel) % H;
+    const tail = maximumReached && !reducedMotion.matches
+      ? star.size * 8 : star.size;
+
+    ctx.globalAlpha = .35 + star.size * .18;
+    ctx.fillStyle = maximumReached ? "#ffd6e9" : "#c1d6ff";
+    ctx.fillRect(star.x, y, star.size, tail);
   }
-
-  addObject(type, random(22, W - 22), speed, style);
+  ctx.globalAlpha = 1;
 }
 
-function beginRaid() {
-  const safeLane = Math.floor(random(0, 5));
-  warning = { remaining: 1.8, safeLane };
-
-  // Impide que otras bombas ya presentes invadan el hueco anunciado.
-  // Durante el aviso tampoco se generan objetos nuevos.
-  objects = objects.filter(o => o.type !== "bomb");
-}
-
-function releaseRaid() {
+function drawWarning() {
+  if (!warning) return;
   const laneWidth = W / 5;
+
   for (let lane = 0; lane < 5; lane++) {
-    if (lane === warning.safeLane) continue;
-    addObject(
-      "bomb", laneWidth * (lane + .5),
-      difficulty().speed * 1.05
-    );
-  }
-  warning = null;
-  spawnTimer = 1.0;
-}
+    const safe = lane === warning.safeLane;
+    ctx.fillStyle = safe ? "rgba(91,224,255,.12)" : "rgba(255,75,103,.18)";
+    ctx.fillRect(lane * laneWidth + 2, 0, laneWidth - 4, H);
 
-function startGame() {
-  if (state === "playing" || state === "paused") return;
-
-  playerName = $("name").value.trim().slice(0, 20) || "Jugador";
-  $("name").value = playerName;
-  try { localStorage.setItem("orbita_apodo", playerName); } catch {}
-
-  elapsed = 0; score = 0; lives = 3; streak = 0;
-  shield = false; magnet = 0; freeze = 0; invulnerable = 0;
-  dashCooldown = 0; dashTime = 0;
-  spawnTimer = .65; nextRaid = 65; warning = null;
-  objects = []; particles = [];
-  player.x = W / 2;
-  resetControls();
-  state = "playing";
-
-  $("name").disabled = true;
-  $("start").disabled = true;
-  $("pause").disabled = false;
-  $("pause").textContent = "Pausa";
-  $("message").textContent =
-    "Empieza con calma: la intensidad aumentará poco a poco.";
-  updateHUD();
-}
-
-function resetControls() {
-  keys.clear();
-  leftHeld = false; rightHeld = false;
-  dragging = false; pointerTarget = null;
-}
-
-function togglePause() {
-  if (state !== "playing" && state !== "paused") return;
-  state = state === "playing" ? "paused" : "playing";
-  resetControls();
-  $("pause").textContent = state === "paused" ? "Continuar" : "Pausa";
-  $("message").textContent = state === "paused"
-    ? "Partida en pausa. La dificultad también está detenida."
-    : "¡Seguimos!";
-  updateHUD();
-}
-
-function dash() {
-  if (state !== "playing" || dashCooldown > 0) return;
-  dashDirection = lastDirection;
-  dashTime = .15;
-  dashCooldown = 3.5;
-}
-
-function finishGame() {
-  state = "over";
-  resetControls();
-  $("name").disabled = false;
-  $("start").disabled = false;
-  $("start").textContent = "Otra partida";
-  $("pause").disabled = true;
-  updateHUD();
-
-  const finalScore = score;
-  const finalName = playerName;
-  $("message").textContent =
-    "Fin de la partida: " + finalScore + " puntos. Guardando marca…";
-
-  saveScore(finalName, finalScore).then(() => {
-    if (state === "over") {
-      $("message").textContent =
-        "¡Marca guardada! Has conseguido " + finalScore + " puntos.";
-    }
-    loadRanking();
-  }).catch(() => {
-    if (state === "over") {
-      $("message").textContent =
-        "Has conseguido " + finalScore +
-        " puntos, pero no se pudieron guardar en el ranking.";
-    }
-  });
-}
-
-function collect(o) {
-  if (o.type === "star") {
-    streak++;
-    score = Math.min(1000000, score + 10 * multiplier());
-    burst(o.x, o.y, "#ffe181");
-  } else if (o.type === "shield") {
-    shield = true;
-    burst(o.x, o.y, "#87d7ff");
-  } else if (o.type === "magnet") {
-    magnet = 7;
-    burst(o.x, o.y, "#da98ff");
-  } else if (o.type === "freeze") {
-    freeze = 5;
-    burst(o.x, o.y, "#86f1ff");
-  } else if (invulnerable <= 0) {
-    streak = 0;
-    invulnerable = 1.1;
-    burst(o.x, o.y, "#ff7186");
-    if (shield) {
-      shield = false;
-    } else {
-      lives--;
-      if (lives <= 0) finishGame();
-    }
-  }
-}
-
-function update(dt) {
-  elapsed += dt;
-  magnet = Math.max(0, magnet - dt);
-  freeze = Math.max(0, freeze - dt);
-  invulnerable = Math.max(0, invulnerable - dt);
-  dashCooldown = Math.max(0, dashCooldown - dt);
-
-  let direction = 0;
-  if (keys.has("arrowleft") || keys.has("a") || leftHeld) direction--;
-  if (keys.has("arrowright") || keys.has("d") || rightHeld) direction++;
-  if (direction) {
-    lastDirection = direction;
-    pointerTarget = null;
+    ctx.fillStyle = safe ? "#a3f4ff" : "#ff9aae";
+    ctx.font = "bold 19px system-ui";
+    ctx.textAlign = "center";
+    ctx.fillText(safe ? "↓" : "!", laneWidth * (lane + .5), 32);
   }
 
-  if (dashTime > 0) {
-    player.x += dashDirection * 950 * dt;
-    dashTime = Math.max(0, dashTime - dt);
-  } else if (pointerTarget !== null) {
-    const delta = pointerTarget - player.x;
-    if (Math.abs(delta) > 2) lastDirection = Math.sign(delta);
-    player.x += clamp(delta, -330 * dt, 330 * dt);
-  } else {
-    player.x += direction * 300 * dt;
-  }
-
-  player.x = clamp(player.x, 24, W - 24);
-
-  if (!warning && elapsed >= nextRaid) {
-    beginRaid();
-    nextRaid = elapsed + random(22, 30);
-  }
-
-  if (warning) {
-    warning.remaining -= dt;
-    if (warning.remaining <= 0) releaseRaid();
-  } else {
-    spawnTimer -= dt;
-    if (spawnTimer <= 0) {
-      spawnObject();
-      spawnTimer = difficulty().interval * random(.9, 1.1);
-    }
-  }
-
-  const slow = freeze > 0 ? .52 : 1;
-
-  for (let i = objects.length - 1; i >= 0; i--) {
-    const o = objects[i];
-    o.age += dt * slow;
-    o.y += o.speed * dt * slow;
-
-    if (o.style === "zigzag") {
-      o.x += Math.sin(o.age * 4 + o.phase) * 75 * dt * slow;
-      o.x = clamp(o.x, 16, W - 16);
-    }
-
-    if (magnet > 0 && o.type === "star") {
-      const distance = Math.hypot(player.x - o.x, player.y - o.y);
-      if (distance < 145) {
-        o.x += (player.x - o.x) * Math.min(1, dt * 6);
-        o.y += (player.y - o.y) * Math.min(1, dt * 3);
-      }
-    }
-
-    const nearX = clamp(o.x,
-      player.x - player.width / 2, player.x + player.width / 2);
-    const nearY = clamp(o.y,
-      player.y - player.height / 2, player.y + player.height / 2);
-
-    if (Math.hypot(o.x - nearX, o.y - nearY) < o.radius) {
-      objects.splice(i, 1);
-      collect(o);
-      if (state !== "playing") break;
-    } else if (o.y > H + 28) {
-      if (o.type === "star") streak = 0;
-      objects.splice(i, 1);
-    }
-  }
-
-  for (let i = particles.length - 1; i >= 0; i--) {
-    const p = particles[i];
-    p.x += p.vx * dt;
-    p.y += p.vy * dt;
-    p.life -= dt;
-    if (p.life <= 0) particles.splice(i, 1);
-  }
-
-  updateHUD();
+  ctx.fillStyle = "#ffd5df";
+  ctx.font = "bold 14px system-ui";
+  ctx.textAlign = "center";
+  ctx.fillText("BOMBARDEO · BUSCA LA FRANJA AZUL", W / 2, 56);
 }
 
 function drawStar(x, y, radius) {
   ctx.beginPath();
   for (let i = 0; i < 10; i++) {
     const angle = -Math.PI / 2 + i * Math.PI / 5;
-    const r = i % 2 ? radius * .45 : radius;
+    const r = i % 2 === 0 ? radius : radius * .46;
     const px = x + Math.cos(angle) * r;
     const py = y + Math.sin(angle) * r;
     if (i === 0) ctx.moveTo(px, py);
@@ -507,267 +659,435 @@ function drawStar(x, y, radius) {
   ctx.fill();
 }
 
-function draw() {
-  ctx.clearRect(0, 0, W, H);
-  ctx.fillStyle = freeze > 0 ? "#10263c" : "#09132c";
-  ctx.fillRect(0, 0, W, H);
-
-  ctx.fillStyle = "#afc6ec";
-  for (const s of stars) {
-    ctx.globalAlpha = .55;
-    ctx.fillRect(s.x, (s.y + elapsed * s.speed) % H, s.size, s.size);
-  }
-  ctx.globalAlpha = 1;
-
-  if (warning) {
-    const laneWidth = W / 5;
-    for (let lane = 0; lane < 5; lane++) {
-      if (lane === warning.safeLane) {
-        ctx.fillStyle = "#70ffc21c";
-        ctx.fillRect(lane * laneWidth, 0, laneWidth, H);
-      } else {
-        ctx.fillStyle =
-          `rgba(255,65,90,${.10 + .12 * Math.abs(Math.sin(elapsed * 10))})`;
-        ctx.fillRect(lane * laneWidth + 2, 0, laneWidth - 4, H);
-        ctx.fillStyle = "#ffb1b9";
-        ctx.font = "bold 22px system-ui";
-        ctx.textAlign = "center";
-        ctx.fillText("!", laneWidth * (lane + .5), 35);
-      }
+function drawObjects() {
+  for (const object of objects) {
+    if (object.type === "star") {
+      ctx.fillStyle = "#ffdc69";
+      drawStar(object.x, object.y, 13);
+      continue;
     }
-    ctx.fillStyle = "#fff0cc";
-    ctx.font = "bold 16px system-ui";
-    ctx.textAlign = "center";
-    ctx.fillText("¡Busca el hueco!", W / 2, 66);
-  }
 
-  for (const o of objects) {
-    if (o.type === "star") {
-      ctx.fillStyle = "#ffda72";
-      drawStar(o.x, o.y, 13);
-    } else if (o.type === "bomb") {
-      ctx.fillStyle = o.style === "fast" ? "#ff8d54"
-        : o.style === "zigzag" ? "#cb8aff" : "#ff637d";
+    if (object.type === "bomb") {
+      if (object.variant === "fast") {
+        ctx.fillStyle = "rgba(255,141,78,.35)";
+        ctx.beginPath();
+        ctx.moveTo(object.x - 8, object.y - 7);
+        ctx.lineTo(object.x, object.y - 37);
+        ctx.lineTo(object.x + 8, object.y - 7);
+        ctx.fill();
+      }
+
+      ctx.fillStyle = object.variant === "fast" ? "#ff865c" :
+        object.variant === "zigzag" ? "#c28aff" : "#ff6386";
       ctx.beginPath();
-      ctx.arc(o.x, o.y, 12, 0, Math.PI * 2);
+      ctx.arc(object.x, object.y, 13, 0, Math.PI * 2);
       ctx.fill();
-      ctx.strokeStyle = "#ffe0b1";
+
+      ctx.strokeStyle = "#34142b";
       ctx.lineWidth = 2;
       ctx.beginPath();
-      ctx.moveTo(o.x + 3, o.y - 11);
-      ctx.lineTo(o.x + 8, o.y - 18);
+      ctx.moveTo(object.x - 4, object.y - 4);
+      ctx.lineTo(object.x + 4, object.y + 4);
+      ctx.moveTo(object.x + 4, object.y - 4);
+      ctx.lineTo(object.x - 4, object.y + 4);
       ctx.stroke();
-      ctx.fillStyle = "#39172b";
-      ctx.font = "bold 14px system-ui";
-      ctx.textAlign = "center";
-      ctx.fillText("×", o.x, o.y + 5);
-    } else {
-      ctx.font = "23px system-ui";
-      ctx.textAlign = "center";
-      ctx.fillText(
-        { shield: "🛡️", magnet: "🧲", freeze: "❄️" }[o.type],
-        o.x, o.y + 8
-      );
+
+      ctx.strokeStyle = "#ffe3a4";
+      ctx.beginPath();
+      ctx.moveTo(object.x + 3, object.y - 12);
+      ctx.lineTo(object.x + 7, object.y - 18);
+      ctx.lineTo(object.x + 12, object.y - 16);
+      ctx.stroke();
+      continue;
     }
+
+    ctx.fillStyle = "#172c4a";
+    ctx.beginPath();
+    ctx.arc(object.x, object.y, 16, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.font = "22px system-ui";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText(
+      object.type === "shield" ? "🛡️" : object.type === "magnet" ? "🧲" : "❄️",
+      object.x, object.y
+    );
+    ctx.textBaseline = "alphabetic";
   }
+}
+
+function drawPlayer() {
+  ctx.save();
+
+  // La transparencia es estable para evitar parpadeos rápidos.
+  if (invulnerable > 0) ctx.globalAlpha = .55;
 
   if (magnet > 0) {
-    ctx.strokeStyle = "#d29cff44";
+    ctx.strokeStyle = "rgba(205,150,255,.25)";
     ctx.lineWidth = 2;
     ctx.beginPath();
-    ctx.arc(player.x, player.y, 145, 0, Math.PI * 2);
+    ctx.arc(player.x, player.y, 65, 0, Math.PI * 2);
     ctx.stroke();
   }
 
-  ctx.save();
-  if (invulnerable > 0 && Math.floor(invulnerable * 14) % 2) {
-    ctx.globalAlpha = .35;
+  if (shield) {
+    ctx.strokeStyle = "#82edff";
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.ellipse(player.x, player.y, 30, 24, 0, 0, Math.PI * 2);
+    ctx.stroke();
   }
-  ctx.fillStyle = dashTime > 0 ? "#fff1a1" : "#79e1ff";
+
+  ctx.fillStyle = dashTime > 0 ? "#fff0a7" : "#78e2ff";
   ctx.beginPath();
   ctx.moveTo(player.x, player.y - 17);
-  ctx.lineTo(player.x + 22, player.y + 10);
-  ctx.lineTo(player.x, player.y + 4);
-  ctx.lineTo(player.x - 22, player.y + 10);
+  ctx.lineTo(player.x + 22, player.y + 11);
+  ctx.lineTo(player.x + 8, player.y + 7);
+  ctx.lineTo(player.x - 8, player.y + 7);
+  ctx.lineTo(player.x - 22, player.y + 11);
   ctx.closePath();
   ctx.fill();
 
-  if (shield) {
-    ctx.strokeStyle = "#91caff";
-    ctx.lineWidth = 3;
-    ctx.beginPath();
-    ctx.arc(player.x, player.y, 31, 0, Math.PI * 2);
-    ctx.stroke();
-  }
+  ctx.fillStyle = "#edfaff";
+  ctx.beginPath();
+  ctx.ellipse(player.x, player.y - 2, 5, 7, 0, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.fillStyle = maximumReached ? "#ff91bf" : "#ffd478";
+  ctx.beginPath();
+  ctx.moveTo(player.x - 6, player.y + 9);
+  ctx.lineTo(player.x, player.y + (dashTime > 0 ? 32 : 22));
+  ctx.lineTo(player.x + 6, player.y + 9);
+  ctx.fill();
   ctx.restore();
+}
+
+function drawMaximumBanner() {
+  if (maximumBanner <= 0) return;
+
+  const fade = Math.min(1, maximumBanner / .6);
+  ctx.save();
+  ctx.globalAlpha = fade;
+
+  // El anuncio se coloca arriba para no tapar la nave.
+  ctx.fillStyle = "rgba(25,9,34,.92)";
+  ctx.fillRect(10, 72, W - 20, 112);
+  ctx.strokeStyle = "#ff8ebc";
+  ctx.lineWidth = 2;
+  ctx.strokeRect(10, 72, W - 20, 112);
+
+  ctx.textAlign = "center";
+  ctx.fillStyle = "#ffc3da";
+  ctx.font = "bold 13px system-ui";
+  ctx.fillText("INTENSIDAD MÁXIMA ALCANZADA", W / 2, 97);
+
+  ctx.fillStyle = "#ffffff";
+  ctx.font = "bold 23px system-ui";
+  ctx.fillText("PUNTO DE NO RETORNO", W / 2, 130);
+
+  ctx.fillStyle = "#f6c6e5";
+  ctx.font = "14px system-ui";
+  ctx.fillText("Hasta aquí era el calentamiento.", W / 2, 157);
+  ctx.restore();
+}
+
+function drawOverlay(title, subtitle) {
+  ctx.fillStyle = "rgba(4,9,23,.76)";
+  ctx.fillRect(0, 0, W, H);
+  ctx.textAlign = "center";
+  ctx.fillStyle = "#ffffff";
+  ctx.font = "bold 29px system-ui";
+  ctx.fillText(title, W / 2, H / 2 - 15);
+  ctx.fillStyle = "#c6d7f4";
+  ctx.font = "15px system-ui";
+  ctx.fillText(subtitle, W / 2, H / 2 + 23);
+}
+
+function draw() {
+  drawSpaceBackground();
+  drawWarning();
+  drawObjects();
 
   for (const p of particles) {
-    ctx.globalAlpha = Math.max(0, p.life / .55);
+    ctx.globalAlpha = clamp(p.life * 2, 0, 1);
     ctx.fillStyle = p.color;
-    ctx.fillRect(p.x, p.y, 4, 4);
+    ctx.fillRect(p.x, p.y, 3, 3);
   }
   ctx.globalAlpha = 1;
 
-  if (state !== "playing") {
-    ctx.fillStyle = "#050b20aa";
-    ctx.fillRect(0, 0, W, H);
-    ctx.fillStyle = "#eef5ff";
-    ctx.font = "bold 28px system-ui";
-    ctx.textAlign = "center";
-    ctx.fillText(
-      state === "paused" ? "Pausa"
-        : state === "over" ? "Fin de la partida" : "Órbita Estelar",
-      W / 2, H / 2 - 10
-    );
-    ctx.font = "16px system-ui";
-    ctx.fillText(
-      state === "paused" ? "Pulsa Continuar"
-        : state === "over" ? score + " puntos" : "Pulsa Jugar para despegar",
-      W / 2, H / 2 + 25
-    );
-  }
+  drawPlayer();
+
+  if (state === "playing") drawMaximumBanner();
+  if (state === "ready") drawOverlay("ÓRBITA ESTELAR", "Pulsa Jugar para iniciar el despegue");
+  if (state === "paused") drawOverlay("EN PAUSA", "Pulsa Continuar o la tecla P");
+  if (state === "ended") drawOverlay("FIN DE LA ÓRBITA", score + " puntos · " + Math.floor(elapsed) + " s");
 }
 
-function bindDirection(id, setHeld) {
-  const button = $(id);
-  button.addEventListener("pointerdown", e => {
-    e.preventDefault();
-    button.setPointerCapture(e.pointerId);
-    setHeld(true);
-    pointerTarget = null;
-  });
-  for (const event of ["pointerup", "pointercancel", "lostpointercapture"]) {
-    button.addEventListener(event, () => setHeld(false));
-  }
-}
-bindDirection("left", value => leftHeld = value);
-bindDirection("right", value => rightHeld = value);
-
-function updatePointer(e) {
-  const rect = canvas.getBoundingClientRect();
-  pointerTarget = clamp((e.clientX - rect.left) * W / rect.width, 24, W - 24);
-}
-canvas.addEventListener("pointerdown", e => {
-  if (state !== "playing") return;
-  dragging = true;
-  canvas.setPointerCapture(e.pointerId);
-  updatePointer(e);
-});
-canvas.addEventListener("pointermove", e => {
-  if (dragging && state === "playing") updatePointer(e);
-});
-for (const event of ["pointerup", "pointercancel", "lostpointercapture"]) {
-  canvas.addEventListener(event, () => {
-    dragging = false;
-    pointerTarget = null;
-  });
-}
-
-window.addEventListener("keydown", e => {
-  if (e.target instanceof HTMLInputElement) return;
-  const key = e.key.toLowerCase();
-  if (["arrowleft", "arrowright", " "].includes(key)) {
-    if (state === "playing" || state === "paused") e.preventDefault();
-  }
-  keys.add(key);
-  if (!e.repeat && key === "p") togglePause();
-  if (!e.repeat && key === " ") dash();
-});
-window.addEventListener("keyup", e => keys.delete(e.key.toLowerCase()));
-window.addEventListener("blur", () => {
-  resetControls();
-  if (state === "playing") togglePause();
-});
-document.addEventListener("visibilitychange", () => {
-  if (document.hidden && state === "playing") togglePause();
-});
-
-$("start").onclick = startGame;
-$("pause").onclick = togglePause;
-$("dash").onclick = dash;
-
-async function databaseRequest(query, options = {}) {
-  const controller = new AbortController();
-  const timer = setTimeout(() => controller.abort(), 12000);
-  try {
-    const response = await fetch(
-      SUPABASE_URL + "/rest/v1/puntuaciones" + query,
-      {
-        ...options,
-        signal: controller.signal,
-        headers: {
-          apikey: SUPABASE_KEY,
-          "Content-Type": "application/json",
-          ...options.headers
-        }
-      }
-    );
-    if (!response.ok) throw new Error("HTTP " + response.status);
-    return response;
-  } finally {
-    clearTimeout(timer);
-  }
-}
-
-async function saveScore(nombre, puntos) {
-  await databaseRequest("", {
-    method: "POST",
-    headers: { Prefer: "return=minimal" },
-    body: JSON.stringify({ nombre, puntos })
-  });
-}
-
-let loadingRanking = false;
-async function loadRanking() {
-  if (loadingRanking) return;
-  loadingRanking = true;
-  $("refresh").disabled = true;
-  $("rankStatus").textContent = "Actualizando…";
-  try {
-    const response = await databaseRequest(
-      "?select=nombre,puntos,creado_en&order=puntos.desc,creado_en.asc&limit=10"
-    );
-    const rows = await response.json();
-    $("ranking").replaceChildren();
-
-    for (const row of rows) {
-      const li = document.createElement("li");
-      const title = document.createElement("strong");
-      const detail = document.createElement("small");
-      title.textContent = row.nombre + " — " +
-        Number(row.puntos).toLocaleString("es-ES") + " puntos";
-      detail.textContent = new Date(row.creado_en).toLocaleString("es-ES");
-      li.append(title, detail);
-      $("ranking").append(li);
-    }
-
-    $("rankStatus").textContent = rows.length
-      ? "Ranking actualizado. Se refresca automáticamente."
-      : "Todavía no hay marcas. ¡Consigue la primera!";
-  } catch {
-    $("rankStatus").textContent =
-      "No se pudo actualizar. Comprueba la conexión y los permisos de Supabase.";
-  } finally {
-    loadingRanking = false;
-    $("refresh").disabled = false;
-  }
-}
-
-$("refresh").onclick = loadRanking;
-setInterval(() => {
-  if (!document.hidden) loadRanking();
-}, 30000);
-
-let previous = performance.now();
 function frame(now) {
-  const dt = Math.min((now - previous) / 1000, .033);
-  previous = now;
-  if (state === "playing") update(dt);
+  const delta = Math.min(Math.max((now - lastFrame) / 1000, 0), .1);
+  lastFrame = now;
+
+  // Subpasos pequeños para mantener las colisiones estables.
+  if (state === "playing") {
+    const steps = Math.max(1, Math.ceil(delta / (1 / 120)));
+    for (let i = 0; i < steps; i++) update(delta / steps);
+  }
+
+  updateHUD();
   draw();
   requestAnimationFrame(frame);
 }
 
-updateHUD();
+async function api(query = "", options = {}) {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), 10000);
+
+  try {
+    const response = await fetch(
+      SUPABASE_URL + "/rest/v1/" + SCORE_TABLE + query,
+      {
+        ...options,
+        headers: {
+          apikey: SUPABASE_KEY,
+          Authorization: "Bearer " + SUPABASE_KEY,
+          "Content-Type": "application/json",
+          ...options.headers
+        },
+        signal: controller.signal
+      }
+    );
+
+    const text = await response.text();
+    let data = null;
+    try { data = text ? JSON.parse(text) : null; } catch {}
+
+    if (!response.ok) {
+      const error = new Error(
+        data && data.message ? data.message : "Error del servidor: " + response.status
+      );
+      error.code = data && data.code;
+      throw error;
+    }
+    return data;
+  } finally {
+    clearTimeout(timeout);
+  }
+}
+
+function getScoreSchema() {
+  if (!schemaPromise) {
+    schemaPromise = (async () => {
+      for (const schema of SCORE_SCHEMAS) {
+        const query = new URLSearchParams({
+          select: schema.name + "," + schema.score,
+          limit: "0"
+        });
+
+        try {
+          await api("?" + query);
+          return schema;
+        } catch (error) {
+          // Solo se prueba otra combinación si la columna no existe.
+          if (error.code !== "42703" && error.code !== "PGRST204") throw error;
+        }
+      }
+      throw new Error("No se reconocen las columnas de la tabla puntuaciones.");
+    })().catch(error => {
+      schemaPromise = null;
+      throw error;
+    });
+  }
+  return schemaPromise;
+}
+
+async function loadRanking() {
+  const request = ++rankRequest;
+  $("refresh").disabled = true;
+  $("rankStatus").textContent = "Cargando ranking…";
+
+  try {
+    const schema = await getScoreSchema();
+    const query = new URLSearchParams({
+      select: schema.name + "," + schema.score,
+      order: schema.score + ".desc",
+      limit: "10"
+    });
+
+    const rows = await api("?" + query);
+    if (request !== rankRequest) return;
+    if (!Array.isArray(rows)) throw new Error("Respuesta de ranking no válida.");
+
+    const fragment = document.createDocumentFragment();
+    for (const row of rows) {
+      const li = document.createElement("li");
+      const name = document.createElement("strong");
+      const points = document.createElement("small");
+
+      name.textContent = String(row[schema.name] || "Jugador");
+      points.textContent = String(row[schema.score] ?? 0) + " puntos";
+      li.append(name, points);
+      fragment.append(li);
+    }
+
+    $("ranking").replaceChildren(fragment);
+    $("rankStatus").textContent = rows.length
+      ? "Mejores puntuaciones compartidas."
+      : "La órbita está vacía. ¡Consigue la primera marca!";
+  } catch (error) {
+    if (request !== rankRequest) return;
+    $("rankStatus").textContent =
+      "No se pudo cargar el ranking. " +
+      (error.name === "AbortError" ? "La conexión tardó demasiado." : error.message);
+  } finally {
+    if (request === rankRequest) $("refresh").disabled = false;
+  }
+}
+
+async function saveScore(name, points) {
+  const schema = await getScoreSchema();
+  await api("", {
+    method: "POST",
+    headers: { Prefer: "return=minimal" },
+    body: JSON.stringify({
+      [schema.name]: name,
+      [schema.score]: points
+    })
+  });
+}
+
+async function endGame() {
+  if (state !== "playing") return;
+
+  state = "ended";
+  clearControls();
+  $("name").disabled = false;
+  $("pause").disabled = true;
+  $("dash").disabled = true;
+  $("start").textContent = "Volver a jugar";
+
+  const finishedGame = gameNumber;
+  const finalScore = score;
+  const finalName = playerName;
+  const survivedMaximum = maximumReached
+    ? " Resististe " + Math.floor(elapsed - MAX_DIFFICULTY_TIME) + " s al máximo."
+    : "";
+
+  const summary = "Fin de la partida: " + finalScore + " puntos." + survivedMaximum;
+  $("message").textContent = summary + " Guardando puntuación…";
+
+  try {
+    await saveScore(finalName, finalScore);
+    if (gameNumber === finishedGame && state === "ended") {
+      $("message").textContent = summary + " Puntuación guardada en el ranking.";
+    }
+    await loadRanking();
+  } catch (error) {
+    if (gameNumber === finishedGame && state === "ended") {
+      $("message").textContent =
+        summary + " No se pudo confirmar el guardado. " +
+        (error.name === "AbortError" ? "La conexión tardó demasiado." : error.message);
+    }
+  }
+}
+
+function editingText() {
+  const element = document.activeElement;
+  return element && (
+    element.tagName === "INPUT" ||
+    element.tagName === "TEXTAREA" ||
+    element.isContentEditable
+  );
+}
+
+window.addEventListener("keydown", event => {
+  if (editingText()) return;
+  const key = event.key.toLowerCase();
+
+  if (["arrowleft", "arrowright", "a", "d", " ", "p"].includes(key)) {
+    if (state === "playing" || state === "paused") event.preventDefault();
+  }
+
+  if (key === "p" && !event.repeat) {
+    togglePause();
+    return;
+  }
+
+  if (state !== "playing") return;
+  if (key === " " && !event.repeat) dash();
+  keys.add(key);
+});
+
+window.addEventListener("keyup", event => {
+  keys.delete(event.key.toLowerCase());
+});
+
+function bindDirection(id, pointers, direction) {
+  const button = $(id);
+
+  button.addEventListener("pointerdown", event => {
+    if (state !== "playing") return;
+    event.preventDefault();
+    pointers.add(event.pointerId);
+    lastDirection = direction;
+    touchTarget = null;
+    button.setPointerCapture(event.pointerId);
+  });
+
+  const release = event => pointers.delete(event.pointerId);
+  button.addEventListener("pointerup", release);
+  button.addEventListener("pointercancel", release);
+  button.addEventListener("lostpointercapture", release);
+}
+
+bindDirection("left", leftPointers, -1);
+bindDirection("right", rightPointers, 1);
+
+function updateTouchTarget(event) {
+  const rect = canvas.getBoundingClientRect();
+  const target = clamp((event.clientX - rect.left) * W / rect.width, 0, W);
+  if (Math.abs(target - player.x) > 1) lastDirection = Math.sign(target - player.x);
+  touchTarget = target;
+}
+
+canvas.addEventListener("pointerdown", event => {
+  if (state !== "playing" || dragPointer !== null) return;
+  event.preventDefault();
+  dragPointer = event.pointerId;
+  canvas.setPointerCapture(event.pointerId);
+  updateTouchTarget(event);
+});
+
+canvas.addEventListener("pointermove", event => {
+  if (state === "playing" && dragPointer === event.pointerId) {
+    updateTouchTarget(event);
+  }
+});
+
+function stopDrag(event) {
+  if (dragPointer === event.pointerId) {
+    dragPointer = null;
+    touchTarget = null;
+  }
+}
+
+canvas.addEventListener("pointerup", stopDrag);
+canvas.addEventListener("pointercancel", stopDrag);
+canvas.addEventListener("lostpointercapture", stopDrag);
+
+window.addEventListener("blur", () => {
+  clearControls();
+  if (state === "playing") togglePause();
+});
+
+document.addEventListener("visibilitychange", () => {
+  if (document.hidden && state === "playing") togglePause();
+});
+
+$("start").addEventListener("click", startGame);
+$("pause").addEventListener("click", togglePause);
+$("dash").addEventListener("click", dash);
+$("refresh").addEventListener("click", loadRanking);
+
 loadRanking();
 requestAnimationFrame(frame);
 </script>
