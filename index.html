@@ -1,0 +1,708 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Órbita Estelar · Amigos</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 18px;
+    background: #080c1d;
+    color: #edf3ff;
+    font-family: system-ui, sans-serif;
+  }
+  main { max-width: 960px; margin: auto; }
+  h1 { margin-bottom: 6px; text-align: center; }
+  .intro { text-align: center; color: #afbfdf; }
+  .layout {
+    display: grid;
+    grid-template-columns: minmax(0, 480px) minmax(0, 1fr);
+    gap: 20px;
+    align-items: start;
+  }
+  .panel {
+    background: #131c35;
+    border: 1px solid #33456e;
+    border-radius: 20px;
+    padding: 18px;
+    min-width: 0;
+  }
+  input, button {
+    font: inherit;
+    padding: 12px;
+    border-radius: 10px;
+  }
+  input {
+    width: 100%;
+    margin-top: 8px;
+    background: #090f24;
+    border: 1px solid #586f9f;
+    color: white;
+  }
+  button {
+    border: 0;
+    background: #ffda78;
+    color: #13203c;
+    font-weight: bold;
+    cursor: pointer;
+  }
+  button:disabled { opacity: .5; cursor: default; }
+  button:focus-visible, input:focus-visible {
+    outline: 3px solid #64e5ff;
+    outline-offset: 3px;
+  }
+  .secondary { background: #bfd5ff; }
+  .stats, .controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    justify-content: space-between;
+    margin: 14px 0;
+  }
+  .stats { font-weight: bold; }
+  canvas {
+    display: block;
+    width: 100%;
+    height: auto;
+    border: 1px solid #536c9d;
+    border-radius: 15px;
+    background: #0b1430;
+  }
+  .direction {
+    min-width: 58px;
+    touch-action: none;
+    user-select: none;
+    -webkit-user-select: none;
+  }
+  #effects { min-height: 24px; color: #7fe9ff; }
+  #message { min-height: 48px; }
+  .note, small { color: #b6c5e5; line-height: 1.6; }
+  #message, #rankStatus { overflow-wrap: anywhere; }
+  ol { padding-left: 28px; }
+  li { padding: 12px 0; border-bottom: 1px solid #33456e; }
+  li strong { display: block; overflow-wrap: anywhere; }
+  .actions { display: flex; flex-wrap: wrap; gap: 8px; }
+  @media (max-width: 760px) {
+    body { padding: 10px; }
+    .layout { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+<main>
+  <h1>🌌 Órbita Estelar</h1>
+  <p class="intro">Atrapa estrellas, activa poderes y reta a tus amigos.</p>
+
+  <div class="layout">
+    <section class="panel" aria-label="Juego">
+      <label for="name">Tu apodo</label>
+      <input id="name" maxlength="20" placeholder="Jugador"
+             autocomplete="nickname">
+
+      <div class="stats">
+        <span>⭐ <span id="score">0</span></span>
+        <span>❤️ <span id="lives">3</span></span>
+        <span>Nivel <span id="level">1</span></span>
+        <span>🔥 <span id="combo">×1</span></span>
+      </div>
+
+      <div id="effects">¡Prepara tu nave!</div>
+
+      <canvas id="game" width="420" height="540"
+              aria-label="Atrapa estrellas con la nave y esquiva bombas">
+        Tu navegador no admite canvas.
+      </canvas>
+
+      <div class="controls">
+        <button id="left" class="direction"
+                aria-label="Mover a la izquierda">◀</button>
+        <button id="start">Jugar</button>
+        <button id="pause" class="secondary" disabled>Pausa</button>
+        <button id="right" class="direction"
+                aria-label="Mover a la derecha">▶</button>
+      </div>
+
+      <p id="message" role="status" aria-live="polite">
+        Escribe tu apodo y pulsa Jugar.
+      </p>
+
+      <details class="note">
+        <summary>Controles y poderes</summary>
+        <p>
+          Muévete con las flechas, A y D o los botones táctiles.
+          Pulsa P para pausar.
+        </p>
+        <p>
+          ⭐ Las estrellas dan puntos. Si se escapan, solo se rompe
+          la racha: no pierdes vidas.<br>
+          🔥 Cada cinco estrellas seguidas mejora el multiplicador,
+          hasta alcanzar ×4.<br>
+          💣 Las bombas quitan una vida.<br>
+          ❤️ Los corazones recuperan vidas, hasta cinco.<br>
+          🛡️ El escudo bloquea una bomba.<br>
+          🧲 El imán atrae estrellas durante ocho segundos.<br>
+          ❄️ La congelación ralentiza la caída durante seis segundos.<br>
+          🌠 Periódicamente llega una lluvia especial: no aparecen
+          bombas nuevas, aunque las anteriores siguen cayendo.
+        </p>
+      </details>
+    </section>
+
+    <aside class="panel">
+      <h2>🏆 Ranking compartido</h2>
+      <p class="note">Las diez mejores partidas de todos los jugadores.</p>
+      <ol id="ranking"></ol>
+      <p id="rankStatus" role="status">Conectando…</p>
+
+      <div class="actions">
+        <button id="refresh" class="secondary">Actualizar</button>
+        <button id="share" class="secondary">Compartir enlace</button>
+      </div>
+
+      <p class="note">
+        El ranking se actualiza automáticamente mientras esta página
+        está abierta. Los resultados se envían al terminar cada partida.
+      </p>
+      <p class="note">
+        Usa un apodo: el ranking es público. No hay cuentas ni
+        verificación de identidad.
+      </p>
+    </aside>
+  </div>
+</main>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script>
+"use strict";
+
+const $ = id => document.getElementById(id);
+const canvas = $("game");
+const ctx = canvas.getContext("2d");
+const W = canvas.width;
+const H = canvas.height;
+
+const SUPABASE_URL = "https://pmptaaofnyqchnynngaq.supabase.co";
+const SUPABASE_KEY = "sb_publishable_El-USjAgVQgpwS4xuS1gdg_Tl_JfLdY";
+
+let db = null;
+try {
+  if (window.supabase) {
+    db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY, {
+      auth: {
+        persistSession: false,
+        autoRefreshToken: false,
+        detectSessionInUrl: false
+      }
+    });
+  }
+} catch (error) {
+  console.error("No se pudo iniciar Supabase:", error);
+}
+
+try {
+  $("name").value = localStorage.getItem("orbita-apodo") || "";
+} catch {}
+
+$("name").addEventListener("input", () => {
+  try {
+    localStorage.setItem("orbita-apodo", $("name").value);
+  } catch {}
+});
+
+let running = false;
+let paused = false;
+let saving = false;
+let loadingRank = false;
+let score = 0;
+let lives = 3;
+let streak = 0;
+let shield = false;
+let elapsed = 0;
+let magnetUntil = 0;
+let freezeUntil = 0;
+let spawnClock = 0;
+let previousTime = 0;
+let playerName = "Jugador";
+let objects = [];
+let particles = [];
+
+const ship = { x: W / 2 - 32, y: H - 52, w: 64, h: 23 };
+const keys = { left: false, right: false };
+const touch = { left: false, right: false };
+
+const icons = {
+  star: "⭐", bomb: "💣", heart: "❤️",
+  shield: "🛡️", magnet: "🧲", freeze: "❄️"
+};
+
+const backgroundStars = Array.from({ length: 55 }, () => ({
+  x: Math.random() * W,
+  y: Math.random() * H,
+  r: Math.random() * 1.5 + .4
+}));
+
+function level() {
+  return 1 + Math.floor(score / 150);
+}
+
+function multiplier() {
+  return Math.min(4, 1 + Math.floor(streak / 5));
+}
+
+function shower() {
+  return running && elapsed % 30 >= 23;
+}
+
+function clearControls() {
+  keys.left = keys.right = false;
+  touch.left = touch.right = false;
+}
+
+function updateHUD() {
+  $("score").textContent = score;
+  $("lives").textContent = lives;
+  $("level").textContent = level();
+  $("combo").textContent = "×" + multiplier();
+
+  const effects = [];
+  if (shield) effects.push("🛡️ Escudo");
+  if (elapsed < magnetUntil)
+    effects.push("🧲 " + Math.ceil(magnetUntil - elapsed) + " s");
+  if (elapsed < freezeUntil)
+    effects.push("❄️ " + Math.ceil(freezeUntil - elapsed) + " s");
+  if (shower()) effects.push("🌠 ¡Lluvia de estrellas!");
+  $("effects").textContent = effects.join(" · ") || "¡A por las estrellas!";
+}
+
+function startGame() {
+  if (saving) return;
+  if (running && !confirm("¿Abandonar la partida actual sin guardarla?")) return;
+
+  playerName = $("name").value.trim().slice(0, 20) || "Jugador";
+  $("name").value = playerName;
+  try {
+    localStorage.setItem("orbita-apodo", playerName);
+  } catch {}
+
+  score = 0;
+  lives = 3;
+  streak = 0;
+  shield = false;
+  elapsed = 0;
+  magnetUntil = freezeUntil = spawnClock = 0;
+  objects = [];
+  particles = [];
+  ship.x = W / 2 - ship.w / 2;
+  running = true;
+  paused = false;
+  clearControls();
+
+  $("name").disabled = true;
+  $("pause").disabled = false;
+  $("pause").textContent = "Pausa";
+  $("start").textContent = "Reiniciar";
+  $("message").textContent = "¡Las estrellas que se escapan no te hacen daño!";
+  updateHUD();
+}
+
+function setPaused(value) {
+  if (!running) return;
+  paused = value;
+  clearControls();
+  $("pause").textContent = paused ? "Continuar" : "Pausa";
+  $("message").textContent = paused
+    ? "Partida pausada."
+    : "¡Atrapa estrellas y esquiva bombas!";
+}
+
+function spawnObject() {
+  const random = Math.random();
+  let type = "star";
+
+  if (shower()) {
+    if (random > .95) type = "magnet";
+  } else if (random < .26) {
+    type = "bomb";
+  } else if (random < .31) {
+    type = "heart";
+  } else if (random < .36) {
+    type = "shield";
+  } else if (random < .41) {
+    type = "magnet";
+  } else if (random < .46) {
+    type = "freeze";
+  }
+
+  objects.push({
+    x: 20 + Math.random() * (W - 40),
+    y: -25,
+    radius: 15,
+    type,
+    speed: 135 + Math.random() * 65 + Math.min(200, level() * 12)
+  });
+}
+
+function burst(x, y, color) {
+  for (let i = 0; i < 12; i++) {
+    const angle = Math.random() * Math.PI * 2;
+    const speed = 35 + Math.random() * 120;
+    particles.push({
+      x, y,
+      vx: Math.cos(angle) * speed,
+      vy: Math.sin(angle) * speed,
+      life: .6,
+      color
+    });
+  }
+}
+
+function collides(o) {
+  const x = Math.max(ship.x, Math.min(o.x, ship.x + ship.w));
+  const y = Math.max(ship.y, Math.min(o.y, ship.y + ship.h));
+  return (o.x - x) ** 2 + (o.y - y) ** 2 <= o.radius ** 2;
+}
+
+function collect(o) {
+  burst(o.x, o.y, o.type === "bomb" ? "#ff647c" : "#ffe58a");
+
+  switch (o.type) {
+    case "star":
+      streak++;
+      score = Math.min(1000000, score + 10 * multiplier());
+      break;
+    case "bomb":
+      streak = 0;
+      if (shield) shield = false;
+      else lives--;
+      break;
+    case "heart":
+      lives = Math.min(5, lives + 1);
+      break;
+    case "shield":
+      shield = true;
+      break;
+    case "magnet":
+      magnetUntil = elapsed + 8;
+      break;
+    case "freeze":
+      freezeUntil = elapsed + 6;
+      break;
+  }
+}
+
+async function finishGame() {
+  running = false;
+  paused = false;
+  clearControls();
+  $("pause").disabled = true;
+  $("start").textContent = "Otra partida";
+
+  const result = { nombre: playerName, puntos: score };
+  const summary = `¡Fin de la partida! ${result.puntos} puntos.`;
+
+  if (!db) {
+    $("name").disabled = false;
+    $("message").textContent =
+      summary + " Sin conexión al ranking: este resultado no se ha guardado.";
+    return;
+  }
+
+  saving = true;
+  $("start").disabled = true;
+  $("message").textContent = summary + " Guardando en el ranking…";
+
+  try {
+    const { error } = await db.from("puntuaciones").insert(result);
+    if (error) throw error;
+    $("message").textContent = summary + " ✅ Resultado guardado.";
+    await loadRanking();
+  } catch (error) {
+    console.error("Error al guardar:", error);
+    $("message").textContent =
+      summary +
+      " No se pudo confirmar el guardado. Revisa la conexión y las políticas de Supabase.";
+  } finally {
+    saving = false;
+    $("start").disabled = false;
+    $("name").disabled = false;
+  }
+}
+
+function update(dt) {
+  elapsed += dt;
+
+  const direction =
+    Number(keys.right || touch.right) - Number(keys.left || touch.left);
+  ship.x = Math.max(0, Math.min(W - ship.w, ship.x + direction * 350 * dt));
+
+  spawnClock += dt;
+  const interval = shower() ? .17 : Math.max(.3, .8 - level() * .035);
+
+  if (spawnClock >= interval) {
+    spawnClock = 0;
+    spawnObject();
+  }
+
+  const slow = elapsed < freezeUntil ? .45 : 1;
+
+  for (let i = objects.length - 1; i >= 0; i--) {
+    const o = objects[i];
+    o.y += o.speed * slow * dt;
+
+    if (o.type === "star" && elapsed < magnetUntil) {
+      const dx = ship.x + ship.w / 2 - o.x;
+      const dy = ship.y + ship.h / 2 - o.y;
+      const distance = Math.hypot(dx, dy);
+      if (distance > 0 && distance < 180) {
+        o.x += dx / distance * 250 * dt;
+        o.y += dy / distance * 190 * dt;
+      }
+    }
+
+    if (collides(o)) {
+      collect(o);
+      objects.splice(i, 1);
+      if (lives <= 0) {
+        updateHUD();
+        finishGame();
+        return;
+      }
+    } else if (o.y > H + 25) {
+      if (o.type === "star") streak = 0;
+      objects.splice(i, 1);
+    }
+  }
+
+  for (let i = particles.length - 1; i >= 0; i--) {
+    const p = particles[i];
+    p.life -= dt;
+    p.x += p.vx * dt;
+    p.y += p.vy * dt;
+    if (p.life <= 0) particles.splice(i, 1);
+  }
+
+  updateHUD();
+}
+
+function draw() {
+  const gradient = ctx.createLinearGradient(0, 0, 0, H);
+  gradient.addColorStop(0, shower() ? "#341654" : "#091329");
+  gradient.addColorStop(1, shower() ? "#123d62" : "#192d51");
+  ctx.fillStyle = gradient;
+  ctx.fillRect(0, 0, W, H);
+
+  ctx.fillStyle = "#d4e5ff";
+  for (const star of backgroundStars) {
+    ctx.globalAlpha = .35 + star.r / 3;
+    ctx.beginPath();
+    ctx.arc(star.x, (star.y + elapsed * 12) % H, star.r, 0, Math.PI * 2);
+    ctx.fill();
+  }
+  ctx.globalAlpha = 1;
+
+  if (running && elapsed < magnetUntil) {
+    ctx.strokeStyle = "#58e5ff66";
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.arc(ship.x + ship.w / 2, ship.y + ship.h / 2,
+            95 + Math.sin(elapsed * 6) * 8, 0, Math.PI * 2);
+    ctx.stroke();
+  }
+
+  ctx.font = "28px system-ui";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  for (const o of objects) ctx.fillText(icons[o.type], o.x, o.y);
+
+  for (const p of particles) {
+    ctx.globalAlpha = Math.max(0, p.life / .6);
+    ctx.fillStyle = p.color;
+    ctx.fillRect(p.x, p.y, 4, 4);
+  }
+  ctx.globalAlpha = 1;
+
+  const center = ship.x + ship.w / 2;
+  ctx.fillStyle = "#69dcff";
+  ctx.beginPath();
+  ctx.moveTo(center, ship.y - 9);
+  ctx.lineTo(ship.x + ship.w, ship.y + ship.h);
+  ctx.lineTo(ship.x, ship.y + ship.h);
+  ctx.closePath();
+  ctx.fill();
+
+  ctx.fillStyle = "#f4fcff";
+  ctx.fillRect(center - 8, ship.y + 3, 16, 10);
+
+  if (shield) {
+    ctx.strokeStyle = "#bda7ff";
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.ellipse(center, ship.y + 9, 43, 30, 0, 0, Math.PI * 2);
+    ctx.stroke();
+  }
+
+  if (!running || paused) {
+    ctx.fillStyle = "#05091bb8";
+    ctx.fillRect(0, 0, W, H);
+    ctx.fillStyle = "#fff";
+    ctx.font = "bold 28px system-ui";
+    ctx.fillText(paused ? "⏸ Pausa" : "🌌 Órbita Estelar", W / 2, H / 2 - 18);
+    ctx.font = "16px system-ui";
+    ctx.fillText(
+      paused ? "Pulsa Continuar o P" : "Pulsa el botón para jugar",
+      W / 2, H / 2 + 20
+    );
+  }
+}
+
+function frame(time) {
+  const dt = Math.min(.04, (time - previousTime) / 1000 || 0);
+  previousTime = time;
+  if (running && !paused) update(dt);
+  draw();
+  requestAnimationFrame(frame);
+}
+
+async function loadRanking() {
+  if (loadingRank) return;
+  if (!db) {
+    $("rankStatus").textContent =
+      "No se ha cargado la conexión. Comprueba internet y recarga la página.";
+    return;
+  }
+
+  loadingRank = true;
+  $("refresh").disabled = true;
+  $("rankStatus").textContent = "Actualizando…";
+
+  try {
+    const { data, error } = await db
+      .from("puntuaciones")
+      .select("nombre,puntos,creado_en")
+      .order("puntos", { ascending: false })
+      .order("creado_en", { ascending: true })
+      .limit(10);
+
+    if (error) throw error;
+
+    $("ranking").replaceChildren();
+
+    for (const row of data) {
+      const li = document.createElement("li");
+      const name = document.createElement("strong");
+      const info = document.createElement("small");
+
+      // textContent evita interpretar los apodos como código HTML.
+      name.textContent = row.nombre;
+      info.textContent =
+        `${row.puntos.toLocaleString("es-ES")} puntos · ` +
+        new Date(row.creado_en).toLocaleDateString("es-ES");
+
+      li.append(name, info);
+      $("ranking").append(li);
+    }
+
+    $("rankStatus").textContent = data.length
+      ? "Actualizado a las " + new Date().toLocaleTimeString("es-ES")
+      : "Todavía no hay resultados. ¡Consigue el primero!";
+  } catch (error) {
+    console.error("Error al consultar ranking:", error);
+    $("rankStatus").textContent =
+      "No se pudo cargar el ranking. Comprueba internet, la tabla y sus permisos.";
+  } finally {
+    loadingRank = false;
+    $("refresh").disabled = false;
+  }
+}
+
+function bindDirection(id, side) {
+  const button = $(id);
+  const pointers = new Set();
+
+  button.addEventListener("pointerdown", event => {
+    event.preventDefault();
+    button.setPointerCapture(event.pointerId);
+    pointers.add(event.pointerId);
+    touch[side] = true;
+  });
+
+  function release(event) {
+    pointers.delete(event.pointerId);
+    touch[side] = pointers.size > 0;
+  }
+
+  button.addEventListener("pointerup", release);
+  button.addEventListener("pointercancel", release);
+  button.addEventListener("lostpointercapture", release);
+}
+
+bindDirection("left", "left");
+bindDirection("right", "right");
+
+window.addEventListener("keydown", event => {
+  if (event.target instanceof HTMLInputElement ||
+      event.target instanceof HTMLTextAreaElement ||
+      event.target.isContentEditable) return;
+
+  const key = event.key.toLowerCase();
+  if (["arrowleft", "arrowright", "a", "d", "p"].includes(key))
+    event.preventDefault();
+
+  if (key === "arrowleft" || key === "a") keys.left = true;
+  if (key === "arrowright" || key === "d") keys.right = true;
+  if (key === "p" && !event.repeat) setPaused(!paused);
+});
+
+window.addEventListener("keyup", event => {
+  const key = event.key.toLowerCase();
+  if (key === "arrowleft" || key === "a") keys.left = false;
+  if (key === "arrowright" || key === "d") keys.right = false;
+});
+
+window.addEventListener("blur", () => {
+  clearControls();
+  if (running && !paused) setPaused(true);
+});
+
+document.addEventListener("visibilitychange", () => {
+  if (document.hidden && running && !paused) setPaused(true);
+});
+
+$("start").addEventListener("click", startGame);
+$("pause").addEventListener("click", () => setPaused(!paused));
+$("refresh").addEventListener("click", loadRanking);
+
+$("share").addEventListener("click", async () => {
+  if (!["https:", "http:"].includes(location.protocol)) {
+    $("rankStatus").textContent =
+      "Primero publica el juego. Un archivo de tu dispositivo no es un enlace público.";
+    return;
+  }
+
+  const url = location.href.split("#")[0];
+  try {
+    if (navigator.share) {
+      await navigator.share({ title: "Órbita Estelar", url });
+    } else if (navigator.clipboard && window.isSecureContext) {
+      await navigator.clipboard.writeText(url);
+      $("rankStatus").textContent = "¡Enlace copiado!";
+    } else {
+      prompt("Copia este enlace:", url);
+    }
+  } catch (error) {
+    if (error.name !== "AbortError")
+      $("rankStatus").textContent = "Puedes copiar el enlace desde la barra del navegador.";
+  }
+});
+
+loadRanking();
+setInterval(() => {
+  if (!document.hidden) loadRanking();
+}, 30000);
+
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>
